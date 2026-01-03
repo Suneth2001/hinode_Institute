@@ -44,6 +44,7 @@ const App = () => {
   const [isPrinting, setIsPrinting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isConnected, setIsConnected] = useState(false);
+  const [currentBillNo, setCurrentBillNo] = useState('');
 
   useEffect(() => {
     setIsConnected(!!window.api);
@@ -119,14 +120,19 @@ const App = () => {
     setIsPrinting(true);
 
     try {
+      let billNumbers: string[] = [];
+
       // 1. Save all transactions first
       if (window.api) {
         for (const item of cart) {
-          await window.api.saveTransaction({
+          const res = await window.api.saveTransaction({
             studentName,
             className: item.name,
             amount: item.price
           });
+          if (res && res.bill_number) {
+            billNumbers.push(res.bill_number);
+          }
         }
       } else {
         Swal.fire({
@@ -138,34 +144,43 @@ const App = () => {
         });
       }
 
-      // 2. Trigger Print (Blocking in most browsers/Electron)
-      window.print();
+      // Format Bill Number string
+      const billNoStr = billNumbers.length > 0 
+        ? (billNumbers.length > 1 ? `${billNumbers[0]} - ${billNumbers[billNumbers.length - 1]}` : billNumbers[0])
+        : `TEMP-${Date.now().toString().slice(-6)}`;
+      
+      setCurrentBillNo(billNoStr);
 
-      // 3. Show Success & Reset (Runs after print dialog closes)
+      // 2. Trigger Print (Wait for state update)
       setTimeout(() => {
-        // Only show success if api was present or user acknowledged the warning (implied)
-        if (window.api) {
-          const Toast = Swal.mixin({
-            toast: true,
-            position: 'top-end',
-            showConfirmButton: false,
-            timer: 2000,
-            timerProgressBar: true,
-            didOpen: (toast) => {
-              toast.addEventListener('mouseenter', Swal.stopTimer)
-              toast.addEventListener('mouseleave', Swal.resumeTimer)
-            }
-          })
-          
-          Toast.fire({
-            icon: 'success',
-            title: 'Payment Recorded!'
-          })
-        }
-        setIsPrinting(false);
-        setStudentName('');
-        setCart([]);
-      }, 500);
+        window.print();
+        
+        // 3. Show Success & Reset (Runs after print dialog closes)
+        setTimeout(() => {
+          if (window.api) {
+            const Toast = Swal.mixin({
+              toast: true,
+              position: 'top-end',
+              showConfirmButton: false,
+              timer: 2000,
+              timerProgressBar: true,
+              didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer)
+                toast.addEventListener('mouseleave', Swal.resumeTimer)
+              }
+            })
+            
+            Toast.fire({
+              icon: 'success',
+              title: 'Payment Recorded!'
+            })
+          }
+          setIsPrinting(false);
+          setStudentName('');
+          setCart([]);
+          setCurrentBillNo('');
+        }, 500);
+      }, 100);
 
     } catch (error) {
       console.error("Transaction failed", error);
@@ -265,7 +280,7 @@ const App = () => {
             <div className="text-right">
               <p className="text-xs text-gray-500 uppercase font-bold">Date & Time</p>
               <p className="text-sm font-medium">{new Date().toLocaleString()}</p>
-              <p className="text-xs text-gray-400 mt-1">Ref: #{Date.now().toString().slice(-8)}</p>
+              <p className="text-xs text-gray-600 font-mono mt-1 font-bold">Bill No: {currentBillNo}</p>
             </div>
           </div>
 
@@ -352,7 +367,7 @@ const BillingPage = ({
       {/* Bill / Cart Area */}
       <div className="w-[400px] bg-white shadow-2xl flex flex-col h-full border-l border-gray-100 z-20">
         <div className="p-6 bg-[#00B140] text-white">
-          <h3 className="text-lg font-bold">Cources Bill</h3>
+          <h3 className="text-lg font-bold">Courses Bill</h3>
           <p className="text-green-100 text-sm">Review details before printing</p>
         </div>
 
@@ -424,7 +439,17 @@ const HistoryPage = () => {
     direction: 'desc',
   });
 
-  const [filterDate, setFilterDate] = useState('');
+  // State for Month Filter (Default: Current Month)
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    return `${year}-${month}`;
+  });
+
+  // State for Date Filter (Default: Empty, as month is default)
+  const [selectedDate, setSelectedDate] = useState('');
+  
   const [filterCourse, setFilterCourse] = useState('');
 
   useEffect(() => {
@@ -461,12 +486,25 @@ const HistoryPage = () => {
 
     let result = [...transactions];
 
-    // 1. Filter by Date
-    if (filterDate) {
+    // 1. Filter Logic (Date takes precedence over Month)
+    if (selectedDate) {
+       // Filter by specific DATE
+       result = result.filter(tx => {
+        const d = new Date(tx.timestamp);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const txDateStr = `${year}-${month}-${day}`;
+        return txDateStr === selectedDate;
+      });
+    } else if (selectedMonth) {
+      // Filter by MONTH
       result = result.filter(tx => {
-        // Convert timestamp to YYYY-MM-DD for comparison
-        const txDate = new Date(tx.timestamp).toLocaleDateString('en-CA'); // en-CA gives YYYY-MM-DD
-        return txDate === filterDate;
+        const d = new Date(tx.timestamp);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const txMonth = `${year}-${month}`;
+        return txMonth === selectedMonth;
       });
     }
 
@@ -485,7 +523,7 @@ const HistoryPage = () => {
       }
       return 0;
     });
-  }, [transactions, sortConfig, filterDate, filterCourse]);
+  }, [transactions, sortConfig, selectedMonth, selectedDate, filterCourse]);
 
   const getSortIcon = (columnKey: string) => {
     if (sortConfig.key !== columnKey) return <ArrowUpDown size={14} className="text-gray-400" />;
@@ -494,20 +532,48 @@ const HistoryPage = () => {
       : <ArrowDown size={14} className="text-[#00B140]" />;
   };
 
+  const getHeaderText = () => {
+    if (selectedDate) {
+      return `Showing records for ${new Date(selectedDate).toLocaleDateString('default', { day: 'numeric', month: 'long', year: 'numeric' })}`
+    }
+    if (selectedMonth) {
+      return `Showing records for ${new Date(selectedMonth).toLocaleDateString('default', { month: 'long', year: 'numeric' })}`
+    }
+    return 'Showing all records';
+  }
+
   return (
-    <div className="h-full p-8 overflow-y-auto bg-gray-50">
-      <header className="mb-8 flex justify-between items-center">
+    <div className="h-full flex flex-col bg-gray-50 overflow-hidden">
+      <header className="shrink-0 px-8 pt-8 pb-4 flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">Payment History</h2>
-          <p className="text-gray-500">Recent transactions log</p>
+          <p className="text-gray-500">{getHeaderText()}</p>
         </div>
        <div className="flex gap-3">
+         {/* Month Filter */}
+         <div className="relative flex items-center gap-2">
+            <span className="text-xs font-bold text-gray-500 uppercase">Month:</span>
+            <input 
+              type="month" 
+              value={selectedMonth}
+              onChange={(e) => {
+                setSelectedMonth(e.target.value);
+                setSelectedDate(''); // Clear date when month is picked
+              }}
+              className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-600 focus:outline-none focus:ring-2 focus:ring-[#00B140] focus:border-transparent shadow-sm cursor-pointer hover:bg-gray-50"
+            />
+         </div>
+
          {/* Date Filter */}
-         <div className="relative">
+         <div className="relative flex items-center gap-2">
+            <span className="text-xs font-bold text-gray-500 uppercase">Date:</span>
             <input 
               type="date" 
-              value={filterDate}
-              onChange={(e) => setFilterDate(e.target.value)}
+              value={selectedDate}
+              onChange={(e) => {
+                setSelectedDate(e.target.value);
+                setSelectedMonth(''); // Clear month when date is picked
+              }}
               className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-600 focus:outline-none focus:ring-2 focus:ring-[#00B140] focus:border-transparent shadow-sm cursor-pointer hover:bg-gray-50"
             />
          </div>
@@ -530,9 +596,9 @@ const HistoryPage = () => {
          </div>
 
          {/* Clear Filters Button (Only show if filters are active) */}
-         {(filterDate || filterCourse) && (
+         {(selectedMonth || selectedDate || filterCourse) && (
             <button 
-              onClick={() => { setFilterDate(''); setFilterCourse(''); }}
+              onClick={() => { setSelectedMonth(''); setSelectedDate(''); setFilterCourse(''); }}
               className="px-3 py-2 text-red-500 hover:bg-red-50 rounded-lg text-sm font-medium transition-colors"
             >
               Clear
@@ -544,47 +610,60 @@ const HistoryPage = () => {
         </button>
       </header>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <table className="w-full text-left">
-          <thead className="bg-gray-50 border-b border-gray-100">
-            <tr>
-              <th
-                className="p-4 font-semibold text-gray-600 text-sm cursor-pointer hover:bg-gray-100 transition-colors select-none"
-                onClick={() => handleSort('timestamp')}
-              >
-                <div className="flex items-center gap-2">
-                  Date {getSortIcon('timestamp')}
-                </div>
-              </th>
-              <th className="p-4 font-semibold text-gray-600 text-sm">Student</th>
-              <th
-                className="p-4 font-semibold text-gray-600 text-sm cursor-pointer hover:bg-gray-100 transition-colors select-none"
-                onClick={() => handleSort('class_name')}
-              >
-                <div className="flex items-center gap-2">
-                  Course {getSortIcon('class_name')}
-                </div>
-              </th>
-              <th className="p-4 font-semibold text-gray-600 text-sm text-right">Amount</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-50">
-            {loading ? (
-              <tr><td colSpan={4} className="p-8 text-center text-gray-400">Loading...</td></tr>
-            ) : filteredAndSortedTransactions.length === 0 ? (
-              <tr><td colSpan={4} className="p-8 text-center text-gray-400">No records found</td></tr>
-            ) : (
-              filteredAndSortedTransactions.map((tx: any) => (
-                <tr key={tx.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="p-4 text-sm text-gray-500">{tx.date}</td>
-                  <td className="p-4 font-medium text-gray-800">{tx.student_name}</td>
-                  <td className="p-4 text-sm text-gray-600">{tx.class_name}</td>
-                  <td className="p-4 font-bold text-[#00B140] text-right">Rs. {tx.amount.toLocaleString()}</td>
+      <div className="flex-1 px-8 pb-8 overflow-hidden">
+        <div className="h-full bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-y-auto">
+            <table className="w-full text-left relative">
+              <thead className="bg-gray-50 border-b border-gray-100 sticky top-0 z-10 shadow-sm">
+                <tr>
+                  <th
+                    className="p-4 font-semibold text-gray-600 text-sm cursor-pointer hover:bg-gray-100 transition-colors select-none"
+                    onClick={() => handleSort('bill_number')}
+                  >
+                    <div className="flex items-center gap-2">
+                      Bill No {getSortIcon('bill_number')}
+                    </div>
+                  </th>
+                  <th
+                    className="p-4 font-semibold text-gray-600 text-sm cursor-pointer hover:bg-gray-100 transition-colors select-none"
+                    onClick={() => handleSort('timestamp')}
+                  >
+                    <div className="flex items-center gap-2">
+                      Date {getSortIcon('timestamp')}
+                    </div>
+                  </th>
+                  <th className="p-4 font-semibold text-gray-600 text-sm">Student</th>
+                  <th
+                    className="p-4 font-semibold text-gray-600 text-sm cursor-pointer hover:bg-gray-100 transition-colors select-none"
+                    onClick={() => handleSort('class_name')}
+                  >
+                    <div className="flex items-center gap-2">
+                      Course {getSortIcon('class_name')}
+                    </div>
+                  </th>
+                  <th className="p-4 font-semibold text-gray-600 text-sm text-right">Amount</th>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {loading ? (
+                  <tr><td colSpan={5} className="p-8 text-center text-gray-400">Loading...</td></tr>
+                ) : filteredAndSortedTransactions.length === 0 ? (
+                  <tr><td colSpan={5} className="p-8 text-center text-gray-400">No records found</td></tr>
+                ) : (
+                  filteredAndSortedTransactions.map((tx: any) => (
+                    <tr key={tx.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="p-4 text-sm font-mono text-gray-500">{tx.bill_number || '-'}</td>
+                      <td className="p-4 text-sm text-gray-500">{tx.date}</td>
+                      <td className="p-4 font-medium text-gray-800">{tx.student_name}</td>
+                      <td className="p-4 text-sm text-gray-600">{tx.class_name}</td>
+                      <td className="p-4 font-bold text-[#00B140] text-right">Rs. {tx.amount.toLocaleString()}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   );

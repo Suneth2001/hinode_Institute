@@ -3,7 +3,8 @@ import path from 'path';
 import fs from 'fs';
 
 // --- Data Storage Setup (JSON) ---
-let dbPath: string;
+const DATA_FILE_NAME = 'transactions.json';
+let dataFilePath: string;
 
 function initStorage() {
   const userDataPath = app.isPackaged 
@@ -14,40 +15,39 @@ function initStorage() {
     fs.mkdirSync(userDataPath, { recursive: true });
   }
 
-  dbPath = path.join(userDataPath, 'transactions.json');
-  console.log("Storage Path:", dbPath);
+  dataFilePath = path.join(userDataPath, DATA_FILE_NAME);
+  console.log("Data File Path:", dataFilePath);
 
-  if (!fs.existsSync(dbPath)) {
+  if (!fs.existsSync(dataFilePath)) {
     try {
-      fs.writeFileSync(dbPath, JSON.stringify([], null, 2), 'utf-8');
-      console.log("Storage initialized successfully.");
+      fs.writeFileSync(dataFilePath, JSON.stringify([], null, 2), 'utf-8');
+      console.log("Data file initialized successfully.");
     } catch (error) {
-      console.error("Failed to initialize storage:", error);
-      dialog.showErrorBox("Storage Error", "Failed to create transaction history file.\n" + error);
+      console.error("Failed to initialize data file:", error);
+      dialog.showErrorBox("Data Error", "Failed to create data file.\n" + error);
     }
   }
 }
 
-// Helper to read data
-function readTransactions() {
+function readData() {
   try {
-    if (!fs.existsSync(dbPath)) return [];
-    const data = fs.readFileSync(dbPath, 'utf-8');
+    if (!fs.existsSync(dataFilePath)) {
+      return [];
+    }
+    const data = fs.readFileSync(dataFilePath, 'utf-8');
     return JSON.parse(data);
   } catch (error) {
-    console.error("Error reading transactions:", error);
+    console.error("Failed to read data:", error);
     return [];
   }
 }
 
-// Helper to write data
-function writeTransactions(data: any[]) {
+function writeData(data: any[]) {
   try {
-    fs.writeFileSync(dbPath, JSON.stringify(data, null, 2), 'utf-8');
-    return true;
+    fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2), 'utf-8');
   } catch (error) {
-    console.error("Error writing transactions:", error);
-    return false;
+    console.error("Failed to write data:", error);
+    throw error;
   }
 }
 
@@ -98,31 +98,63 @@ app.on('window-all-closed', () => {
 // Save Transaction
 ipcMain.handle('save-transaction', async (event, data) => {
   const { studentName, className, amount } = data;
-  const date = new Date().toLocaleString();
+  const now = new Date();
+  const date = now.toLocaleString();
   const timestamp = Date.now();
-  
-  const newTransaction = {
-    id: timestamp, // Simple ID based on timestamp
-    student_name: studentName,
-    class_name: className,
-    amount,
-    date,
-    timestamp
-  };
 
-  const transactions = readTransactions();
-  transactions.push(newTransaction);
-  
-  if (writeTransactions(transactions)) {
-    return { success: true, id: newTransaction.id, date };
-  } else {
-    throw new Error("Failed to write to storage");
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const prefix = `${year}${month}`; // e.g., 202601
+
+  try {
+    const transactions = readData();
+    
+    // Generate Bill Number
+    // Filter for transactions with the same prefix
+    const currentMonthTransactions = transactions.filter((t: any) => 
+      t.bill_number && t.bill_number.startsWith(prefix)
+    );
+
+    let sequence = 1;
+    if (currentMonthTransactions.length > 0) {
+      // Find max sequence
+      const maxSeq = currentMonthTransactions.reduce((max: number, t: any) => {
+        const seq = parseInt(t.bill_number.slice(-4));
+        return seq > max ? seq : max;
+      }, 0);
+      sequence = maxSeq + 1;
+    }
+
+    const billNumber = `${prefix}${String(sequence).padStart(4, '0')}`;
+    
+    const newTransaction = {
+      id: timestamp, // Using timestamp as ID for simplicity
+      bill_number: billNumber,
+      student_name: studentName,
+      class_name: className,
+      amount: amount,
+      date: date,
+      timestamp: timestamp
+    };
+
+    transactions.push(newTransaction);
+    writeData(transactions);
+    
+    return { success: true, id: timestamp, bill_number: billNumber, date };
+  } catch (error) {
+    console.error("Failed to save transaction:", error);
+    throw new Error("Data error: " + error);
   }
 });
 
 // Get Transactions (History)
 ipcMain.handle('get-transactions', async (event) => {
-  const transactions = readTransactions();
-  // Sort by timestamp DESC
-  return transactions.sort((a: any, b: any) => b.timestamp - a.timestamp);
+  try {
+    const transactions = readData();
+    // Sort by timestamp DESC
+    return transactions.sort((a: any, b: any) => b.timestamp - a.timestamp);
+  } catch (error) {
+    console.error("Failed to fetch transactions:", error);
+    return [];
+  }
 });
