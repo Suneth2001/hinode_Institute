@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1767458879435,
+    "student_name": "zxzx",
+    "class_name": "Admission Fee",
+    "amount": 1000,
+    "date": "1/3/2026, 10:17:59 PM",
+    "timestamp": 1767458879435
+  },
+  {
+    "id": 1767458933137,
+    "student_name": "Akila",
+    "class_name": "Admission Fee",
+    "amount": 1000,
+    "date": "1/3/2026, 10:18:53 PM",
+    "timestamp": 1767458933137
+  },
+  {
+    "id": 1767458933143,
+    "student_name": "Akila",
+    "class_name": "Grade 6 to 11",
+    "amount": 1200,
+    "date": "1/3/2026, 10:18:53 PM",
+    "timestamp": 1767458933143
+  }
+]

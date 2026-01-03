@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Printer, History, PlusCircle, Search, Trash2 } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Printer, History, PlusCircle, Search, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 
 // --- Constants ---
 const COURSE_FEES = [
@@ -42,6 +42,11 @@ const App = () => {
   const [cart, setCart] = useState<typeof COURSE_FEES>([]);
   const [isPrinting, setIsPrinting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isConnected, setIsConnected] = useState(false);
+
+  useEffect(() => {
+    setIsConnected(!!window.api);
+  }, []);
 
   const addToCart = (course: typeof COURSE_FEES[0]) => {
     if (!cart.find(c => c.id === course.id)) {
@@ -87,7 +92,7 @@ const App = () => {
           });
         }
       } else {
-        console.warn("Electron API not detected. Transactions will not be saved permanently.");
+        alert("Running in Browser? History will NOT be saved.\nPlease run the Desktop App: npm run electron:dev");
       }
       
       // 2. Trigger Print (Blocking in most browsers/Electron)
@@ -95,7 +100,10 @@ const App = () => {
 
       // 3. Show Success & Reset (Runs after print dialog closes)
       setTimeout(() => {
-        alert("Payment Recorded Successfully!");
+        // Only show success if api was present or user acknowledged the warning (implied)
+        if (window.api) {
+           alert("Payment Recorded Successfully!");
+        }
         setIsPrinting(false);
         setStudentName('');
         setCart([]);
@@ -103,7 +111,7 @@ const App = () => {
 
     } catch (error) {
       console.error("Transaction failed", error);
-      alert("Error saving transaction! Please check logs.");
+      alert("Error saving transaction! Check console for details.");
       setIsPrinting(false);
     }
   };
@@ -149,7 +157,11 @@ const App = () => {
           </nav>
 
           <div className="p-4 border-t border-gray-100 text-center text-xs text-gray-400">
-            Hinode POS v1.0
+            <p>Hinode POS v1.0</p>
+            <div className={`mt-2 flex items-center justify-center gap-2 ${isConnected ? 'text-green-600' : 'text-red-500'}`}>
+              <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+              {isConnected ? 'System Ready' : 'Browser Mode (No DB)'}
+            </div>
           </div>
         </aside>
 
@@ -348,6 +360,10 @@ const BillingPage = ({
 const HistoryPage = () => {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' }>({
+    key: 'timestamp',
+    direction: 'desc',
+  });
 
   useEffect(() => {
     loadData();
@@ -370,6 +386,35 @@ const HistoryPage = () => {
     }
   };
 
+  const handleSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedTransactions = useMemo(() => {
+    if (!transactions.length) return [];
+    
+    return [...transactions].sort((a, b) => {
+      if (a[sortConfig.key] < b[sortConfig.key]) {
+        return sortConfig.direction === 'asc' ? -1 : 1;
+      }
+      if (a[sortConfig.key] > b[sortConfig.key]) {
+        return sortConfig.direction === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+  }, [transactions, sortConfig]);
+
+  const getSortIcon = (columnKey: string) => {
+    if (sortConfig.key !== columnKey) return <ArrowUpDown size={14} className="text-gray-400" />;
+    return sortConfig.direction === 'asc' 
+      ? <ArrowUp size={14} className="text-[#00B140]" /> 
+      : <ArrowDown size={14} className="text-[#00B140]" />;
+  };
+
   return (
     <div className="h-full p-8 overflow-y-auto bg-gray-50">
       <header className="mb-8 flex justify-between items-center">
@@ -386,19 +431,33 @@ const HistoryPage = () => {
         <table className="w-full text-left">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
-              <th className="p-4 font-semibold text-gray-600 text-sm">Date</th>
+              <th 
+                className="p-4 font-semibold text-gray-600 text-sm cursor-pointer hover:bg-gray-100 transition-colors select-none"
+                onClick={() => handleSort('timestamp')}
+              >
+                <div className="flex items-center gap-2">
+                  Date {getSortIcon('timestamp')}
+                </div>
+              </th>
               <th className="p-4 font-semibold text-gray-600 text-sm">Student</th>
-              <th className="p-4 font-semibold text-gray-600 text-sm">Course</th>
+              <th 
+                className="p-4 font-semibold text-gray-600 text-sm cursor-pointer hover:bg-gray-100 transition-colors select-none"
+                onClick={() => handleSort('class_name')}
+              >
+                <div className="flex items-center gap-2">
+                  Course {getSortIcon('class_name')}
+                </div>
+              </th>
               <th className="p-4 font-semibold text-gray-600 text-sm text-right">Amount</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
             {loading ? (
                <tr><td colSpan={4} className="p-8 text-center text-gray-400">Loading...</td></tr>
-            ) : transactions.length === 0 ? (
+            ) : sortedTransactions.length === 0 ? (
                <tr><td colSpan={4} className="p-8 text-center text-gray-400">No records found</td></tr>
             ) : (
-              transactions.map((tx: any) => (
+              sortedTransactions.map((tx: any) => (
                 <tr key={tx.id} className="hover:bg-gray-50 transition-colors">
                   <td className="p-4 text-sm text-gray-500">{tx.date}</td>
                   <td className="p-4 font-medium text-gray-800">{tx.student_name}</td>

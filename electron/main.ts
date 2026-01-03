@@ -1,15 +1,11 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import path from 'path';
 import fs from 'fs';
-import Database from 'better-sqlite3';
 
-// --- Database Setup (SQLite) ---
-let db: Database.Database;
+// --- Data Storage Setup (JSON) ---
+let dbPath: string;
 
-function initDatabase() {
-  // Determine database path
-  // In Dev: <project>/data/transactions.db
-  // In Prod: <exe_folder>/data/transactions.db
+function initStorage() {
   const userDataPath = app.isPackaged 
     ? path.join(path.dirname(app.getPath('exe')), 'data')
     : path.join(__dirname, '../data');
@@ -18,27 +14,40 @@ function initDatabase() {
     fs.mkdirSync(userDataPath, { recursive: true });
   }
 
-  const dbPath = path.join(userDataPath, 'transactions.db');
-  console.log("Database Path:", dbPath);
+  dbPath = path.join(userDataPath, 'transactions.json');
+  console.log("Storage Path:", dbPath);
 
+  if (!fs.existsSync(dbPath)) {
+    try {
+      fs.writeFileSync(dbPath, JSON.stringify([], null, 2), 'utf-8');
+      console.log("Storage initialized successfully.");
+    } catch (error) {
+      console.error("Failed to initialize storage:", error);
+      dialog.showErrorBox("Storage Error", "Failed to create transaction history file.\n" + error);
+    }
+  }
+}
+
+// Helper to read data
+function readTransactions() {
   try {
-    db = new Database(dbPath);
-    db.pragma('journal_mode = WAL');
-    
-    // Create table
-    db.prepare(`
-      CREATE TABLE IF NOT EXISTS transactions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        student_name TEXT,
-        class_name TEXT,
-        amount INTEGER,
-        date TEXT,
-        timestamp INTEGER
-      )
-    `).run();
-    console.log("Database initialized successfully.");
+    if (!fs.existsSync(dbPath)) return [];
+    const data = fs.readFileSync(dbPath, 'utf-8');
+    return JSON.parse(data);
   } catch (error) {
-    console.error("Failed to initialize database:", error);
+    console.error("Error reading transactions:", error);
+    return [];
+  }
+}
+
+// Helper to write data
+function writeTransactions(data: any[]) {
+  try {
+    fs.writeFileSync(dbPath, JSON.stringify(data, null, 2), 'utf-8');
+    return true;
+  } catch (error) {
+    console.error("Error writing transactions:", error);
+    return false;
   }
 }
 
@@ -68,7 +77,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  initDatabase();
+  initStorage();
   createWindow();
 
   app.on('activate', () => {
@@ -92,24 +101,28 @@ ipcMain.handle('save-transaction', async (event, data) => {
   const date = new Date().toLocaleString();
   const timestamp = Date.now();
   
-  const stmt = db.prepare(`
-    INSERT INTO transactions (student_name, class_name, amount, date, timestamp)
-    VALUES (@studentName, @className, @amount, @date, @timestamp)
-  `);
-
-  const info = stmt.run({
-    studentName,
-    className,
+  const newTransaction = {
+    id: timestamp, // Simple ID based on timestamp
+    student_name: studentName,
+    class_name: className,
     amount,
     date,
     timestamp
-  });
+  };
 
-  return { success: true, id: info.lastInsertRowid, date };
+  const transactions = readTransactions();
+  transactions.push(newTransaction);
+  
+  if (writeTransactions(transactions)) {
+    return { success: true, id: newTransaction.id, date };
+  } else {
+    throw new Error("Failed to write to storage");
+  }
 });
 
 // Get Transactions (History)
 ipcMain.handle('get-transactions', async (event) => {
-  const stmt = db.prepare('SELECT * FROM transactions ORDER BY timestamp DESC');
-  return stmt.all();
+  const transactions = readTransactions();
+  // Sort by timestamp DESC
+  return transactions.sort((a: any, b: any) => b.timestamp - a.timestamp);
 });
