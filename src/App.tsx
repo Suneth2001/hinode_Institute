@@ -36,7 +36,7 @@ interface BillingPageProps {
 
 const App = () => {
   const [activeTab, setActiveTab] = useState<'billing' | 'history'>('billing');
-  
+
   // Lifted state for BillingPage to manage print logic at App level
   const [studentName, setStudentName] = useState('');
   const [cart, setCart] = useState<typeof COURSE_FEES>([]);
@@ -60,8 +60,8 @@ const App = () => {
 
   const totalAmount = cart.reduce((sum, item) => sum + item.price, 0);
 
-  const filteredCourses = COURSE_FEES.filter(c => 
-    c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+  const filteredCourses = COURSE_FEES.filter(c =>
+    c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.schedule.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -94,7 +94,7 @@ const App = () => {
       } else {
         alert("Running in Browser? History will NOT be saved.\nPlease run the Desktop App: npm run electron:dev");
       }
-      
+
       // 2. Trigger Print (Blocking in most browsers/Electron)
       window.print();
 
@@ -102,7 +102,7 @@ const App = () => {
       setTimeout(() => {
         // Only show success if api was present or user acknowledged the warning (implied)
         if (window.api) {
-           alert("Payment Recorded Successfully!");
+          alert("Payment Recorded Successfully!");
         }
         setIsPrinting(false);
         setStudentName('');
@@ -124,7 +124,7 @@ const App = () => {
         <aside className="w-64 bg-white shadow-md flex flex-col z-10">
           <div className="p-6 flex flex-col items-center border-b border-gray-100">
             <div className="w-16 h-16 bg-[#00B140] rounded-full flex items-center justify-center mb-3 shadow-lg">
-               <span className="text-white text-2xl font-bold">H</span>
+              <span className="text-white text-2xl font-bold">H</span>
             </div>
             <h1 className="text-xl font-bold text-[#00B140] tracking-tight">HINODE</h1>
             <h2 className="text-sm font-medium text-gray-500 uppercase tracking-widest">Institute</h2>
@@ -133,23 +133,21 @@ const App = () => {
           <nav className="flex-1 p-4 space-y-2">
             <button
               onClick={() => setActiveTab('billing')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
-                activeTab === 'billing' 
-                  ? 'bg-[#00B140] text-white shadow-md transform scale-105' 
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${activeTab === 'billing'
+                  ? 'bg-[#00B140] text-white shadow-md transform scale-105'
                   : 'text-gray-600 hover:bg-gray-50 hover:text-[#00B140]'
-              }`}
+                }`}
             >
               <PlusCircle size={20} />
               <span className="font-semibold">New Payment</span>
             </button>
-            
+
             <button
               onClick={() => setActiveTab('history')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
-                activeTab === 'history' 
-                  ? 'bg-[#00B140] text-white shadow-md transform scale-105' 
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${activeTab === 'history'
+                  ? 'bg-[#00B140] text-white shadow-md transform scale-105'
                   : 'text-gray-600 hover:bg-gray-50 hover:text-[#00B140]'
-              }`}
+                }`}
             >
               <History size={20} />
               <span className="font-semibold">History</span>
@@ -168,8 +166,8 @@ const App = () => {
         {/* Main Content */}
         <main className="flex-1 overflow-hidden relative">
           {activeTab === 'billing' ? (
-            <BillingPage 
-              studentName={studentName} 
+            <BillingPage
+              studentName={studentName}
               setStudentName={setStudentName}
               cart={cart}
               setCart={setCart}
@@ -188,67 +186,67 @@ const App = () => {
 
       {/* Print Receipt Template - Only visible when printing */}
       <div className="hidden print:block fixed inset-0 bg-white z-[9999] p-8">
-          <div className="border-2 border-gray-800 p-8 h-full max-w-3xl mx-auto">
-            <div className="text-center border-b-2 border-gray-800 pb-6 mb-6">
-              <div className="flex justify-center items-center gap-2 mb-2">
-                 <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center text-white font-bold text-xs">H</div>
-                 <h1 className="text-4xl font-bold uppercase tracking-wider">Hinode Institute</h1>
-              </div>
-              <p className="text-sm text-gray-600 uppercase tracking-widest">Official Payment Receipt</p>
+        <div className="border-2 border-gray-800 p-8 h-full max-w-3xl mx-auto">
+          <div className="text-center border-b-2 border-gray-800 pb-6 mb-6">
+            <div className="flex justify-center items-center gap-2 mb-2">
+              <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center text-white font-bold text-xs">H</div>
+              <h1 className="text-4xl font-bold uppercase tracking-wider">Hinode Institute</h1>
             </div>
+            <p className="text-sm text-gray-600 uppercase tracking-widest">Official Payment Receipt</p>
+          </div>
 
-            <div className="flex justify-between items-start mb-8">
-              <div>
-                <p className="text-xs text-gray-500 uppercase font-bold">Student Name</p>
-                <p className="text-xl font-bold">{studentName}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-gray-500 uppercase font-bold">Date & Time</p>
-                <p className="text-sm font-medium">{new Date().toLocaleString()}</p>
-                <p className="text-xs text-gray-400 mt-1">Ref: #{Date.now().toString().slice(-8)}</p>
-              </div>
+          <div className="flex justify-between items-start mb-8">
+            <div>
+              <p className="text-xs text-gray-500 uppercase font-bold">Student Name</p>
+              <p className="text-xl font-bold">{studentName}</p>
             </div>
-
-            <table className="w-full mb-8">
-              <thead>
-                <tr className="border-b-2 border-gray-800">
-                  <th className="py-2 text-left font-bold uppercase text-sm">Description</th>
-                  <th className="py-2 text-right font-bold uppercase text-sm">Amount (Rs.)</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {cart.map((item, idx) => (
-                  <tr key={idx}>
-                    <td className="py-3 text-sm">{item.name} <span className="text-xs text-gray-500 block">{item.schedule}</span></td>
-                    <td className="py-3 text-right font-medium">{item.price.toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            <div className="flex flex-col items-end border-t-2 border-gray-800 pt-4 mb-12">
-              <div className="flex justify-between w-64 text-2xl font-bold">
-                <span>TOTAL</span>
-                <span>Rs. {totalAmount.toLocaleString()}</span>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">Paid in Cash</p>
-            </div>
-
-            <div className="text-center mt-auto pt-8 border-t border-gray-200">
-              <p className="font-bold text-gray-800">Thank You!</p>
-              <p className="text-xs text-gray-500 mt-1">Please retain this receipt for your records.</p>
-              <p className="text-xs text-gray-400 mt-4">System Generated Receipt | Hinode Institute</p>
+            <div className="text-right">
+              <p className="text-xs text-gray-500 uppercase font-bold">Date & Time</p>
+              <p className="text-sm font-medium">{new Date().toLocaleString()}</p>
+              <p className="text-xs text-gray-400 mt-1">Ref: #{Date.now().toString().slice(-8)}</p>
             </div>
           </div>
+
+          <table className="w-full mb-8">
+            <thead>
+              <tr className="border-b-2 border-gray-800">
+                <th className="py-2 text-left font-bold uppercase text-sm">Description</th>
+                <th className="py-2 text-right font-bold uppercase text-sm">Amount (Rs.)</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {cart.map((item, idx) => (
+                <tr key={idx}>
+                  <td className="py-3 text-sm">{item.name} <span className="text-xs text-gray-500 block">{item.schedule}</span></td>
+                  <td className="py-3 text-right font-medium">{item.price.toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div className="flex flex-col items-end border-t-2 border-gray-800 pt-4 mb-12">
+            <div className="flex justify-between w-64 text-2xl font-bold">
+              <span>TOTAL</span>
+              <span>Rs. {totalAmount.toLocaleString()}</span>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">Paid in Cash</p>
+          </div>
+
+          <div className="text-center mt-auto pt-8 border-t border-gray-200">
+            <p className="font-bold text-gray-800">Thank You!</p>
+            <p className="text-xs text-gray-500 mt-1">Please retain this receipt for your records.</p>
+            <p className="text-xs text-gray-400 mt-4">System Generated Receipt | Hinode Institute</p>
+          </div>
+        </div>
       </div>
     </div>
   );
 };
 
 // --- Billing Component ---
-const BillingPage = ({ 
-  studentName, setStudentName, cart, addToCart, removeFromCart, 
-  handlePrint, isPrinting, searchQuery, setSearchQuery, filteredCourses, totalAmount 
+const BillingPage = ({
+  studentName, setStudentName, cart, addToCart, removeFromCart,
+  handlePrint, isPrinting, searchQuery, setSearchQuery, filteredCourses, totalAmount
 }: BillingPageProps) => {
 
   return (
@@ -262,9 +260,9 @@ const BillingPage = ({
           </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-            <input 
-              type="text" 
-              placeholder="Search classes..." 
+            <input
+              type="text"
+              placeholder="Search classes..."
               className="pl-10 pr-4 py-2 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#00B140] focus:border-transparent"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -292,7 +290,7 @@ const BillingPage = ({
       {/* Bill / Cart Area */}
       <div className="w-[400px] bg-white shadow-2xl flex flex-col h-full border-l border-gray-100 z-20">
         <div className="p-6 bg-[#00B140] text-white">
-          <h3 className="text-lg font-bold">Current Bill</h3>
+          <h3 className="text-lg font-bold">Cources Bill</h3>
           <p className="text-green-100 text-sm">Review details before printing</p>
         </div>
 
@@ -309,26 +307,26 @@ const BillingPage = ({
           </div>
 
           <div className="flex-1">
-             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Selected Items ({cart.length})</label>
-             {cart.length === 0 ? (
-               <div className="text-center py-10 text-gray-300 border-2 border-dashed border-gray-100 rounded-xl">
-                 No items selected
-               </div>
-             ) : (
-               <div className="space-y-3">
-                 {cart.map((item, idx) => (
-                   <div key={`${item.id}-${idx}`} className="flex justify-between items-center bg-gray-50 p-3 rounded-lg group">
-                     <div>
-                       <div className="font-medium text-gray-800 text-sm">{item.name}</div>
-                       <div className="text-xs text-gray-500">Rs. {item.price.toLocaleString()}</div>
-                     </div>
-                     <button onClick={() => removeFromCart(item.id)} className="text-gray-300 hover:text-red-500 transition-colors">
-                       <Trash2 size={16} />
-                     </button>
-                   </div>
-                 ))}
-               </div>
-             )}
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Selected Items ({cart.length})</label>
+            {cart.length === 0 ? (
+              <div className="text-center py-10 text-gray-300 border-2 border-dashed border-gray-100 rounded-xl">
+                No items selected
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {cart.map((item, idx) => (
+                  <div key={`${item.id}-${idx}`} className="flex justify-between items-center bg-gray-50 p-3 rounded-lg group">
+                    <div>
+                      <div className="font-medium text-gray-800 text-sm">{item.name}</div>
+                      <div className="text-xs text-gray-500">Rs. {item.price.toLocaleString()}</div>
+                    </div>
+                    <button onClick={() => removeFromCart(item.id)} className="text-gray-300 hover:text-red-500 transition-colors">
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -341,11 +339,10 @@ const BillingPage = ({
           <button
             onClick={handlePrint}
             disabled={isPrinting}
-            className={`w-full py-4 rounded-xl flex items-center justify-center gap-2 font-bold text-lg shadow-lg transition-all transform active:scale-95 ${
-              isPrinting
-              ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-              : 'bg-[#FF671F] text-white hover:bg-[#ff5700] hover:shadow-[#FF671F]/30'
-            }`}
+            className={`w-full py-4 rounded-xl flex items-center justify-center gap-2 font-bold text-lg shadow-lg transition-all transform active:scale-95 ${isPrinting
+                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                : 'bg-[#FF671F] text-white hover:bg-[#ff5700] hover:shadow-[#FF671F]/30'
+              }`}
           >
             <Printer size={24} />
             <span>{isPrinting ? 'PRINTING...' : 'PAY & PRINT'}</span>
@@ -364,6 +361,9 @@ const HistoryPage = () => {
     key: 'timestamp',
     direction: 'desc',
   });
+
+  const [filterDate, setFilterDate] = useState('');
+  const [filterCourse, setFilterCourse] = useState('');
 
   useEffect(() => {
     loadData();
@@ -394,10 +394,27 @@ const HistoryPage = () => {
     setSortConfig({ key, direction });
   };
 
-  const sortedTransactions = useMemo(() => {
+  const filteredAndSortedTransactions = useMemo(() => {
     if (!transactions.length) return [];
-    
-    return [...transactions].sort((a, b) => {
+
+    let result = [...transactions];
+
+    // 1. Filter by Date
+    if (filterDate) {
+      result = result.filter(tx => {
+        // Convert timestamp to YYYY-MM-DD for comparison
+        const txDate = new Date(tx.timestamp).toLocaleDateString('en-CA'); // en-CA gives YYYY-MM-DD
+        return txDate === filterDate;
+      });
+    }
+
+    // 2. Filter by Course
+    if (filterCourse) {
+      result = result.filter(tx => tx.class_name === filterCourse);
+    }
+
+    // 3. Sort
+    return result.sort((a, b) => {
       if (a[sortConfig.key] < b[sortConfig.key]) {
         return sortConfig.direction === 'asc' ? -1 : 1;
       }
@@ -406,12 +423,12 @@ const HistoryPage = () => {
       }
       return 0;
     });
-  }, [transactions, sortConfig]);
+  }, [transactions, sortConfig, filterDate, filterCourse]);
 
   const getSortIcon = (columnKey: string) => {
     if (sortConfig.key !== columnKey) return <ArrowUpDown size={14} className="text-gray-400" />;
-    return sortConfig.direction === 'asc' 
-      ? <ArrowUp size={14} className="text-[#00B140]" /> 
+    return sortConfig.direction === 'asc'
+      ? <ArrowUp size={14} className="text-[#00B140]" />
       : <ArrowDown size={14} className="text-[#00B140]" />;
   };
 
@@ -422,8 +439,46 @@ const HistoryPage = () => {
           <h2 className="text-2xl font-bold text-gray-800">Payment History</h2>
           <p className="text-gray-500">Recent transactions log</p>
         </div>
+       <div className="flex gap-3">
+         {/* Date Filter */}
+         <div className="relative">
+            <input 
+              type="date" 
+              value={filterDate}
+              onChange={(e) => setFilterDate(e.target.value)}
+              className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-600 focus:outline-none focus:ring-2 focus:ring-[#00B140] focus:border-transparent shadow-sm cursor-pointer hover:bg-gray-50"
+            />
+         </div>
+
+         {/* Course Filter */}
+         <div className="relative">
+           <select
+            value={filterCourse}
+            onChange={(e) => setFilterCourse(e.target.value)}
+            className="appearance-none px-4 py-2 pr-8 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-600 focus:outline-none focus:ring-2 focus:ring-[#00B140] focus:border-transparent shadow-sm cursor-pointer hover:bg-gray-50"
+           >
+             <option value="">All Courses</option>
+             {COURSE_FEES.map(course => (
+               <option key={course.id} value={course.name}>{course.name}</option>
+             ))}
+           </select>
+           <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+              <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+           </div>
+         </div>
+
+         {/* Clear Filters Button (Only show if filters are active) */}
+         {(filterDate || filterCourse) && (
+            <button 
+              onClick={() => { setFilterDate(''); setFilterCourse(''); }}
+              className="px-3 py-2 text-red-500 hover:bg-red-50 rounded-lg text-sm font-medium transition-colors"
+            >
+              Clear
+            </button>
+         )}
+       </div>
         <button onClick={loadData} className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 text-gray-600">
-          Refresh
+         Refresh
         </button>
       </header>
 
@@ -431,7 +486,7 @@ const HistoryPage = () => {
         <table className="w-full text-left">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
-              <th 
+              <th
                 className="p-4 font-semibold text-gray-600 text-sm cursor-pointer hover:bg-gray-100 transition-colors select-none"
                 onClick={() => handleSort('timestamp')}
               >
@@ -440,7 +495,7 @@ const HistoryPage = () => {
                 </div>
               </th>
               <th className="p-4 font-semibold text-gray-600 text-sm">Student</th>
-              <th 
+              <th
                 className="p-4 font-semibold text-gray-600 text-sm cursor-pointer hover:bg-gray-100 transition-colors select-none"
                 onClick={() => handleSort('class_name')}
               >
@@ -453,11 +508,11 @@ const HistoryPage = () => {
           </thead>
           <tbody className="divide-y divide-gray-50">
             {loading ? (
-               <tr><td colSpan={4} className="p-8 text-center text-gray-400">Loading...</td></tr>
-            ) : sortedTransactions.length === 0 ? (
-               <tr><td colSpan={4} className="p-8 text-center text-gray-400">No records found</td></tr>
+              <tr><td colSpan={4} className="p-8 text-center text-gray-400">Loading...</td></tr>
+            ) : filteredAndSortedTransactions.length === 0 ? (
+              <tr><td colSpan={4} className="p-8 text-center text-gray-400">No records found</td></tr>
             ) : (
-              sortedTransactions.map((tx: any) => (
+              filteredAndSortedTransactions.map((tx: any) => (
                 <tr key={tx.id} className="hover:bg-gray-50 transition-colors">
                   <td className="p-4 text-sm text-gray-500">{tx.date}</td>
                   <td className="p-4 font-medium text-gray-800">{tx.student_name}</td>
