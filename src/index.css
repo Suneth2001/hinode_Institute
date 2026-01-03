@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #00B140;
+  --color-secondary-yellow: #FEDD00; /* Assuming standard yellow since user wasn't specific, easy to change */
+  --color-secondary-orange: #FF671F;
+}
+
+body {
+  background-color: #f3f4f6;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
