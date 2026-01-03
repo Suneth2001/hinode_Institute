@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Printer, History, PlusCircle, Search, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import Swal from 'sweetalert2';
 
 // --- Constants ---
 const COURSE_FEES = [
@@ -66,16 +67,52 @@ const App = () => {
   );
 
   const handlePrint = async () => {
+    const cuteAlert = {
+      width: 320,
+      padding: '1.5rem',
+      customClass: {
+        popup: 'rounded-[2rem]',
+        confirmButton: 'rounded-full px-6 font-bold shadow-md',
+        cancelButton: 'rounded-full px-6 font-bold shadow-md',
+        title: 'text-lg font-bold text-gray-800',
+        htmlContainer: 'text-sm text-gray-500'
+      }
+    };
+
     if (!studentName.trim()) {
-      alert("Please enter a student name.");
+      Swal.fire({
+        ...cuteAlert,
+        icon: 'warning',
+        title: 'Missing Info',
+        text: 'Please enter a student name.',
+        confirmButtonColor: '#00B140'
+      });
       return;
     }
     if (cart.length === 0) {
-      alert("Please select at least one course.");
+      Swal.fire({
+        ...cuteAlert,
+        icon: 'warning',
+        title: 'Empty Cart',
+        text: 'Please select at least one course.',
+        confirmButtonColor: '#00B140'
+      });
       return;
     }
 
-    if (!confirm(`Confirm payment of Rs. ${totalAmount.toLocaleString()} for ${studentName}?`)) {
+    const result = await Swal.fire({
+      ...cuteAlert,
+      title: 'Confirm Payment?',
+      html: `Pay <b class="text-[#00B140]">Rs. ${totalAmount.toLocaleString()}</b><br/>for ${studentName}?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#00B140',
+      cancelButtonColor: '#FF671F',
+      confirmButtonText: 'Yes, Pay',
+      cancelButtonText: 'Cancel'
+    });
+
+    if (!result.isConfirmed) {
       return;
     }
 
@@ -92,7 +129,13 @@ const App = () => {
           });
         }
       } else {
-        alert("Running in Browser? History will NOT be saved.\nPlease run the Desktop App: npm run electron:dev");
+        Swal.fire({
+          ...cuteAlert,
+            icon: 'info',
+            title: 'Browser Mode',
+            text: "History will NOT be saved in browser.",
+            confirmButtonColor: '#00B140'
+        });
       }
 
       // 2. Trigger Print (Blocking in most browsers/Electron)
@@ -102,7 +145,22 @@ const App = () => {
       setTimeout(() => {
         // Only show success if api was present or user acknowledged the warning (implied)
         if (window.api) {
-          alert("Payment Recorded Successfully!");
+          const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 2000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+              toast.addEventListener('mouseenter', Swal.stopTimer)
+              toast.addEventListener('mouseleave', Swal.resumeTimer)
+            }
+          })
+          
+          Toast.fire({
+            icon: 'success',
+            title: 'Payment Recorded!'
+          })
         }
         setIsPrinting(false);
         setStudentName('');
@@ -111,7 +169,13 @@ const App = () => {
 
     } catch (error) {
       console.error("Transaction failed", error);
-      alert("Error saving transaction! Check console for details.");
+      Swal.fire({
+        ...cuteAlert,
+        icon: 'error',
+        title: 'Oops!',
+        text: 'Something went wrong.',
+        confirmButtonColor: '#d33'
+      });
       setIsPrinting(false);
     }
   };
@@ -122,12 +186,10 @@ const App = () => {
       <div className="flex h-full print:hidden">
         {/* Sidebar */}
         <aside className="w-64 bg-white shadow-md flex flex-col z-10">
-          <div className="p-6 flex flex-col items-center border-b border-gray-100">
-            <div className="w-16 h-16 bg-[#00B140] rounded-full flex items-center justify-center mb-3 shadow-lg">
-              <span className="text-white text-2xl font-bold">H</span>
+          <div className="mt-10 flex flex-col items-center border-b border-gray-100 pb-6">
+            <div className="w-[150px] h-[150px]">
+              <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
             </div>
-            <h1 className="text-xl font-bold text-[#00B140] tracking-tight">HINODE</h1>
-            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-widest">Institute</h2>
           </div>
 
           <nav className="flex-1 p-4 space-y-2">

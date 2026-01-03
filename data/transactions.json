@@ -38,5 +38,29 @@
     "amount": 1000,
     "date": "1/3/2026, 11:07:39 PM",
     "timestamp": 1767461859099
+  },
+  {
+    "id": 1767464214756,
+    "student_name": "xss",
+    "class_name": "Admission Fee",
+    "amount": 1000,
+    "date": "1/3/2026, 11:46:54 PM",
+    "timestamp": 1767464214756
+  },
+  {
+    "id": 1767464214758,
+    "student_name": "xss",
+    "class_name": "Grade 6 to 11 Special",
+    "amount": 1000,
+    "date": "1/3/2026, 11:46:54 PM",
+    "timestamp": 1767464214758
+  },
+  {
+    "id": 1767464265708,
+    "student_name": "feteg",
+    "class_name": "Grade 6 to 11",
+    "amount": 1200,
+    "date": "1/3/2026, 11:47:45 PM",
+    "timestamp": 1767464265708
   }
 ]
