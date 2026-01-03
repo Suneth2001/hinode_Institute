@@ -132,5 +132,14 @@
     "amount": 1200,
     "date": "1/4/2026, 12:10:13 AM",
     "timestamp": 1767465613269
+  },
+  {
+    "id": 1767469703057,
+    "bill_number": "2026010007",
+    "student_name": "mahinda rjapkasha",
+    "class_name": "Grade 6 to 11 Special",
+    "amount": 1000,
+    "date": "1/4/2026, 1:18:23 AM",
+    "timestamp": 1767469703057
   }
 ]

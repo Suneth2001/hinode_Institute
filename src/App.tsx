@@ -45,9 +45,12 @@ const App = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isConnected, setIsConnected] = useState(false);
   const [currentBillNo, setCurrentBillNo] = useState('');
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
     setIsConnected(!!window.api);
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
   }, []);
 
   const addToCart = (course: typeof COURSE_FEES[0]) => {
@@ -137,24 +140,24 @@ const App = () => {
       } else {
         Swal.fire({
           ...cuteAlert,
-            icon: 'info',
-            title: 'Browser Mode',
-            text: "History will NOT be saved in browser.",
-            confirmButtonColor: '#00B140'
+          icon: 'info',
+          title: 'Browser Mode',
+          text: "History will NOT be saved in browser.",
+          confirmButtonColor: '#00B140'
         });
       }
 
       // Format Bill Number string
-      const billNoStr = billNumbers.length > 0 
+      const billNoStr = billNumbers.length > 0
         ? (billNumbers.length > 1 ? `${billNumbers[0]} - ${billNumbers[billNumbers.length - 1]}` : billNumbers[0])
         : `TEMP-${Date.now().toString().slice(-6)}`;
-      
+
       setCurrentBillNo(billNoStr);
 
       // 2. Trigger Print (Wait for state update)
       setTimeout(() => {
         window.print();
-        
+
         // 3. Show Success & Reset (Runs after print dialog closes)
         setTimeout(() => {
           if (window.api) {
@@ -169,7 +172,7 @@ const App = () => {
                 toast.addEventListener('mouseleave', Swal.resumeTimer)
               }
             })
-            
+
             Toast.fire({
               icon: 'success',
               title: 'Payment Recorded!'
@@ -196,14 +199,37 @@ const App = () => {
   };
 
   return (
-    <div className="h-screen bg-gray-100 font-sans text-gray-800">
+    <div className="h-screen bg-gray-100 font-sans text-gray-800 overflow-hidden">
       {/* Main UI - Hidden when printing */}
-      <div className="flex h-full print:hidden">
-        {/* Sidebar */}
-        <aside className="w-64 bg-white shadow-md flex flex-col z-10">
+      <div className="flex h-full print:hidden flex-col md:flex-row">
+
+        {/* Mobile Header */}
+        <header className="md:hidden bg-white shadow-sm p-3 flex justify-between items-center z-20 shrink-0 h-16">
+          <div className="flex items-center gap-2">
+            <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
+            <div className="leading-tight">
+              <h1 className="font-bold text-gray-800 text-lg">Hinode POS</h1>
+              <p className="text-[10px] text-gray-400 font-bold uppercase">{currentTime.toLocaleDateString()}</p>
+            </div>
+          </div>
+          <div className="font-mono font-bold text-gray-600 bg-gray-100 px-2 py-1 rounded">
+            {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </div>
+        </header>
+
+        {/* Desktop Sidebar */}
+        <aside className="hidden md:flex w-64 bg-white shadow-md flex-col z-10 shrink-0">
           <div className="mt-10 flex flex-col items-center border-b border-gray-100 pb-6">
             <div className="w-[150px] h-[150px]">
               <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
+            </div>
+            <div className="mt-4 text-center">
+              <p className="text-3xl font-black text-gray-800 tracking-tight">
+                {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </p>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">
+                {currentTime.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
+              </p>
             </div>
           </div>
 
@@ -211,8 +237,8 @@ const App = () => {
             <button
               onClick={() => setActiveTab('billing')}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${activeTab === 'billing'
-                  ? 'bg-[#00B140] text-white shadow-md transform scale-105'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-[#00B140]'
+                ? 'bg-[#00B140] text-white shadow-md transform scale-105'
+                : 'text-gray-600 hover:bg-gray-50 hover:text-[#00B140]'
                 }`}
             >
               <PlusCircle size={20} />
@@ -222,8 +248,8 @@ const App = () => {
             <button
               onClick={() => setActiveTab('history')}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${activeTab === 'history'
-                  ? 'bg-[#00B140] text-white shadow-md transform scale-105'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-[#00B140]'
+                ? 'bg-[#00B140] text-white shadow-md transform scale-105'
+                : 'text-gray-600 hover:bg-gray-50 hover:text-[#00B140]'
                 }`}
             >
               <History size={20} />
@@ -241,7 +267,7 @@ const App = () => {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-hidden relative">
+        <main className="flex-1 overflow-hidden relative flex flex-col h-[calc(100vh-128px)] md:h-full">
           {activeTab === 'billing' ? (
             <BillingPage
               studentName={studentName}
@@ -259,6 +285,24 @@ const App = () => {
             />
           ) : <HistoryPage />}
         </main>
+
+        {/* Mobile Bottom Navigation */}
+        <nav className="md:hidden bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] border-t border-gray-100 shrink-0 h-16 flex justify-around items-center z-30">
+          <button
+            onClick={() => setActiveTab('billing')}
+            className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-colors ${activeTab === 'billing' ? 'text-[#00B140]' : 'text-gray-400'}`}
+          >
+            <PlusCircle size={24} />
+            <span className="text-[10px] font-bold uppercase">Payment</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('history')}
+            className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-colors ${activeTab === 'history' ? 'text-[#00B140]' : 'text-gray-400'}`}
+          >
+            <History size={24} />
+            <span className="text-[10px] font-bold uppercase">History</span>
+          </button>
+        </nav>
       </div>
 
       {/* Print Receipt Template - Only visible when printing */}
@@ -327,51 +371,51 @@ const BillingPage = ({
 }: BillingPageProps) => {
 
   return (
-    <div className="h-full flex gap-0">
+    <div className="h-full flex flex-col md:flex-row gap-0 overflow-hidden">
       {/* Course Selection Area */}
-      <div className="flex-1 bg-gray-50 p-8 overflow-y-auto">
-        <header className="mb-8 flex justify-between items-center">
+      <div className="flex-1 bg-gray-50 p-4 md:p-8 overflow-y-auto order-1">
+        <header className="mb-6 md:mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-gray-800">Select Courses</h2>
-            <p className="text-gray-500">Click to add to bill</p>
+            <h2 className="text-xl md:text-2xl font-bold text-gray-800">Select Courses</h2>
+            <p className="text-sm md:text-base text-gray-500">Click to add to bill</p>
           </div>
-          <div className="relative">
+          <div className="relative w-full md:w-auto">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
             <input
               type="text"
               placeholder="Search classes..."
-              className="pl-10 pr-4 py-2 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#00B140] focus:border-transparent"
+              className="w-full md:w-64 pl-10 pr-4 py-2 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#00B140] focus:border-transparent"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-20">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4 pb-20">
           {filteredCourses.map((course) => (
             <button
               key={course.id}
               onClick={() => addToCart(course)}
-              className="group flex flex-col items-start p-5 bg-white rounded-2xl shadow-sm border border-transparent hover:border-[#00B140] hover:shadow-md transition-all duration-200 text-left"
+              className="group flex flex-col items-start p-4 md:p-5 bg-white rounded-2xl shadow-sm border border-transparent hover:border-[#00B140] hover:shadow-md transition-all duration-200 text-left"
             >
               <div className="flex justify-between w-full mb-2">
-                <span className="font-bold text-gray-800 group-hover:text-[#00B140] transition-colors">{course.name}</span>
-                <span className="font-bold text-[#FF671F]">Rs. {course.price.toLocaleString()}</span>
+                <span className="font-bold text-gray-800 group-hover:text-[#00B140] transition-colors line-clamp-1">{course.name}</span>
+                <span className="font-bold text-[#FF671F] shrink-0 ml-2">Rs. {course.price.toLocaleString()}</span>
               </div>
-              <span className="text-sm text-gray-400">{course.schedule}</span>
+              <span className="text-xs md:text-sm text-gray-400 line-clamp-1">{course.schedule}</span>
             </button>
           ))}
         </div>
       </div>
 
       {/* Bill / Cart Area */}
-      <div className="w-[400px] bg-white shadow-2xl flex flex-col h-full border-l border-gray-100 z-20">
-        <div className="p-6 bg-[#00B140] text-white">
+      <div className="w-full md:w-[400px] bg-white shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] md:shadow-2xl flex flex-col h-[45%] md:h-full border-t md:border-t-0 md:border-l border-gray-100 z-20 order-2 shrink-0">
+        <div className="p-4 md:p-6 bg-[#00B140] text-white shrink-0">
           <h3 className="text-lg font-bold">Courses Bill</h3>
-          <p className="text-green-100 text-sm">Review details before printing</p>
+          <p className="text-green-100 text-sm hidden md:block">Review details before printing</p>
         </div>
 
-        <div className="p-6 flex-1 overflow-y-auto flex flex-col gap-4">
+        <div className="p-4 md:p-6 flex-1 overflow-y-auto flex flex-col gap-4">
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Student Name</label>
             <input
@@ -386,18 +430,18 @@ const BillingPage = ({
           <div className="flex-1">
             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Selected Items ({cart.length})</label>
             {cart.length === 0 ? (
-              <div className="text-center py-10 text-gray-300 border-2 border-dashed border-gray-100 rounded-xl">
+              <div className="text-center py-6 md:py-10 text-gray-300 border-2 border-dashed border-gray-100 rounded-xl text-sm">
                 No items selected
               </div>
             ) : (
               <div className="space-y-3">
                 {cart.map((item, idx) => (
                   <div key={`${item.id}-${idx}`} className="flex justify-between items-center bg-gray-50 p-3 rounded-lg group">
-                    <div>
-                      <div className="font-medium text-gray-800 text-sm">{item.name}</div>
+                    <div className="overflow-hidden">
+                      <div className="font-medium text-gray-800 text-sm truncate">{item.name}</div>
                       <div className="text-xs text-gray-500">Rs. {item.price.toLocaleString()}</div>
                     </div>
-                    <button onClick={() => removeFromCart(item.id)} className="text-gray-300 hover:text-red-500 transition-colors">
+                    <button onClick={() => removeFromCart(item.id)} className="text-gray-300 hover:text-red-500 transition-colors p-1">
                       <Trash2 size={16} />
                     </button>
                   </div>
@@ -407,21 +451,21 @@ const BillingPage = ({
           </div>
         </div>
 
-        <div className="p-6 bg-gray-50 border-t border-gray-100">
-          <div className="flex justify-between items-end mb-6">
-            <span className="text-gray-500 font-medium">Total Amount</span>
-            <span className="text-3xl font-bold text-gray-800">Rs. {totalAmount.toLocaleString()}</span>
+        <div className="p-4 md:p-6 bg-gray-50 border-t border-gray-100 shrink-0">
+          <div className="flex justify-between items-end mb-4 md:mb-6">
+            <span className="text-gray-500 font-medium text-sm">Total Amount</span>
+            <span className="text-2xl md:text-3xl font-bold text-gray-800">Rs. {totalAmount.toLocaleString()}</span>
           </div>
 
           <button
             onClick={handlePrint}
             disabled={isPrinting}
-            className={`w-full py-4 rounded-xl flex items-center justify-center gap-2 font-bold text-lg shadow-lg transition-all transform active:scale-95 ${isPrinting
-                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                : 'bg-[#FF671F] text-white hover:bg-[#ff5700] hover:shadow-[#FF671F]/30'
+            className={`w-full py-3 md:py-4 rounded-xl flex items-center justify-center gap-2 font-bold text-base md:text-lg shadow-lg transition-all transform active:scale-95 ${isPrinting
+              ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              : 'bg-[#FF671F] text-white hover:bg-[#ff5700] hover:shadow-[#FF671F]/30'
               }`}
           >
-            <Printer size={24} />
+            <Printer size={20} className="md:w-6 md:h-6" />
             <span>{isPrinting ? 'PRINTING...' : 'PAY & PRINT'}</span>
           </button>
         </div>
@@ -449,8 +493,9 @@ const HistoryPage = () => {
 
   // State for Date Filter (Default: Empty, as month is default)
   const [selectedDate, setSelectedDate] = useState('');
-  
+
   const [filterCourse, setFilterCourse] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     loadData();
@@ -486,10 +531,19 @@ const HistoryPage = () => {
 
     let result = [...transactions];
 
+    // 0. Search Filter (Bill No or Student Name)
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(tx =>
+        (tx.bill_number && tx.bill_number.toLowerCase().includes(q)) ||
+        (tx.student_name && tx.student_name.toLowerCase().includes(q))
+      );
+    }
+
     // 1. Filter Logic (Date takes precedence over Month)
     if (selectedDate) {
-       // Filter by specific DATE
-       result = result.filter(tx => {
+      // Filter by specific DATE
+      result = result.filter(tx => {
         const d = new Date(tx.timestamp);
         const year = d.getFullYear();
         const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -523,7 +577,7 @@ const HistoryPage = () => {
       }
       return 0;
     });
-  }, [transactions, sortConfig, selectedMonth, selectedDate, filterCourse]);
+  }, [transactions, sortConfig, selectedMonth, selectedDate, filterCourse, searchQuery]);
 
   const getSortIcon = (columnKey: string) => {
     if (sortConfig.key !== columnKey) return <ArrowUpDown size={14} className="text-gray-400" />;
@@ -533,6 +587,7 @@ const HistoryPage = () => {
   };
 
   const getHeaderText = () => {
+    if (searchQuery) return `Search results for "${searchQuery}"`;
     if (selectedDate) {
       return `Showing records for ${new Date(selectedDate).toLocaleDateString('default', { day: 'numeric', month: 'long', year: 'numeric' })}`
     }
@@ -544,119 +599,208 @@ const HistoryPage = () => {
 
   return (
     <div className="h-full flex flex-col bg-gray-50 overflow-hidden">
-      <header className="shrink-0 px-8 pt-8 pb-4 flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800">Payment History</h2>
-          <p className="text-gray-500">{getHeaderText()}</p>
-        </div>
-       <div className="flex gap-3">
-         {/* Month Filter */}
-         <div className="relative flex items-center gap-2">
-            <span className="text-xs font-bold text-gray-500 uppercase">Month:</span>
-            <input 
-              type="month" 
-              value={selectedMonth}
-              onChange={(e) => {
-                setSelectedMonth(e.target.value);
-                setSelectedDate(''); // Clear date when month is picked
-              }}
-              className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-600 focus:outline-none focus:ring-2 focus:ring-[#00B140] focus:border-transparent shadow-sm cursor-pointer hover:bg-gray-50"
-            />
-         </div>
-
-         {/* Date Filter */}
-         <div className="relative flex items-center gap-2">
-            <span className="text-xs font-bold text-gray-500 uppercase">Date:</span>
-            <input 
-              type="date" 
-              value={selectedDate}
-              onChange={(e) => {
-                setSelectedDate(e.target.value);
-                setSelectedMonth(''); // Clear month when date is picked
-              }}
-              className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-600 focus:outline-none focus:ring-2 focus:ring-[#00B140] focus:border-transparent shadow-sm cursor-pointer hover:bg-gray-50"
-            />
-         </div>
-
-         {/* Course Filter */}
-         <div className="relative">
-           <select
-            value={filterCourse}
-            onChange={(e) => setFilterCourse(e.target.value)}
-            className="appearance-none px-4 py-2 pr-8 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-600 focus:outline-none focus:ring-2 focus:ring-[#00B140] focus:border-transparent shadow-sm cursor-pointer hover:bg-gray-50"
-           >
-             <option value="">All Courses</option>
-             {COURSE_FEES.map(course => (
-               <option key={course.id} value={course.name}>{course.name}</option>
-             ))}
-           </select>
-           <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-              <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-           </div>
-         </div>
-
-         {/* Clear Filters Button (Only show if filters are active) */}
-         {(selectedMonth || selectedDate || filterCourse) && (
-            <button 
-              onClick={() => { setSelectedMonth(''); setSelectedDate(''); setFilterCourse(''); }}
-              className="px-3 py-2 text-red-500 hover:bg-red-50 rounded-lg text-sm font-medium transition-colors"
+      {/* Enhanced Header */}
+      <header className="shrink-0 bg-white border-b border-gray-100 shadow-sm px-4 md:px-8 py-4 md:py-6 z-10">
+        <div className="max-w-[1600px] mx-auto flex flex-col gap-6">
+          {/* Top Row: Title & Refresh */}
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-800 tracking-tight">Payment History</h2>
+              <p className="text-sm text-gray-400 font-medium mt-0.5">{getHeaderText()}</p>
+            </div>
+            <button
+              onClick={loadData}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-500 flex items-center gap-2 text-sm font-bold uppercase tracking-wider"
+              title="Refresh Data"
             >
-              Clear
+              <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              <span className="hidden sm:inline">Refresh</span>
             </button>
-         )}
-       </div>
-        <button onClick={loadData} className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 text-gray-600">
-         Refresh
-        </button>
+          </div>
+
+          {/* Bottom Row: Filters Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-3 items-end">
+            {/* Search */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Quick Search</label>
+              <div className="relative group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#00B140] transition-colors" size={16} />
+                <input
+                  type="text"
+                  placeholder="Bill No / Student..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#00B140]/20 focus:border-[#00B140] transition-all"
+                />
+              </div>
+            </div>
+
+            {/* Month */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Filter by Month</label>
+              <input
+                type="month"
+                value={selectedMonth}
+                onChange={(e) => {
+                  setSelectedMonth(e.target.value);
+                  setSelectedDate('');
+                }}
+                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#00B140]/20 focus:border-[#00B140] transition-all cursor-pointer"
+              />
+            </div>
+
+            {/* Date */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Filter by Date</label>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => {
+                  setSelectedDate(e.target.value);
+                  setSelectedMonth('');
+                }}
+                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#00B140]/20 focus:border-[#00B140] transition-all cursor-pointer"
+              />
+            </div>
+
+            {/* Course */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Filter by Course</label>
+              <div className="relative">
+                <select
+                  value={filterCourse}
+                  onChange={(e) => setFilterCourse(e.target.value)}
+                  className="w-full appearance-none px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#00B140]/20 focus:border-[#00B140] transition-all cursor-pointer"
+                >
+                  <option value="">All Courses</option>
+                  {COURSE_FEES.map(course => (
+                    <option key={course.id} value={course.name}>{course.name}</option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+                  <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-2">
+              {(selectedMonth || selectedDate || filterCourse || searchQuery) && (
+                <button
+                  onClick={() => { setSelectedMonth(''); setSelectedDate(''); setFilterCourse(''); setSearchQuery(''); }}
+                  className="h-[46px] px-6 text-red-500 hover:bg-red-50 border border-transparent hover:border-red-100 rounded-xl text-sm font-bold transition-all flex-1 sm:flex-none"
+                >
+                  Clear All
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
       </header>
 
-      <div className="flex-1 px-8 pb-8 overflow-hidden">
-        <div className="h-full bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto">
-            <table className="w-full text-left relative">
-              <thead className="bg-gray-50 border-b border-gray-100 sticky top-0 z-10 shadow-sm">
-                <tr>
+      {/* Main Table Container */}
+      <div className="flex-1 p-4 md:p-8 overflow-hidden bg-gray-50">
+        <div className="h-full bg-white rounded-[1rem] shadow-xl shadow-gray-200/50 border border-gray-100 flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-auto">
+            <table className="w-full text-left relative min-w-[800px] border-collapse">
+              <thead className="sticky top-0 z-20 shadow-sm">
+                <tr className="bg-white/95 backdrop-blur-md">
                   <th
-                    className="p-4 font-semibold text-gray-600 text-sm cursor-pointer hover:bg-gray-100 transition-colors select-none"
+                    className="p-5 font-bold text-gray-400 text-[10px] uppercase tracking-widest cursor-pointer hover:text-[#00B140] transition-colors border-b border-gray-200"
                     onClick={() => handleSort('bill_number')}
                   >
                     <div className="flex items-center gap-2">
-                      Bill No {getSortIcon('bill_number')}
+                      Bill Details {getSortIcon('bill_number')}
                     </div>
                   </th>
+                  <th className="p-5 font-bold text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-200">Student Name</th>
+
                   <th
-                    className="p-4 font-semibold text-gray-600 text-sm cursor-pointer hover:bg-gray-100 transition-colors select-none"
+                    className="p-5 font-bold text-gray-400 text-[10px] uppercase tracking-widest cursor-pointer hover:text-[#00B140] transition-colors border-b border-gray-200"
                     onClick={() => handleSort('timestamp')}
                   >
                     <div className="flex items-center gap-2">
-                      Date {getSortIcon('timestamp')}
+                      Payment Date {getSortIcon('timestamp')}
                     </div>
                   </th>
-                  <th className="p-4 font-semibold text-gray-600 text-sm">Student</th>
                   <th
-                    className="p-4 font-semibold text-gray-600 text-sm cursor-pointer hover:bg-gray-100 transition-colors select-none"
+                    className="p-5 font-bold text-gray-400 text-[10px] uppercase tracking-widest cursor-pointer hover:text-[#00B140] transition-colors border-b border-gray-200"
                     onClick={() => handleSort('class_name')}
                   >
                     <div className="flex items-center gap-2">
-                      Course {getSortIcon('class_name')}
+                      Course Plan {getSortIcon('class_name')}
                     </div>
                   </th>
-                  <th className="p-4 font-semibold text-gray-600 text-sm text-right">Amount</th>
+                  <th className="p-5 font-bold text-gray-400 text-[10px] uppercase tracking-widest text-right border-b border-gray-200">Settled Amount</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-gray-100">
                 {loading ? (
-                  <tr><td colSpan={5} className="p-8 text-center text-gray-400">Loading...</td></tr>
+                  <tr>
+                    <td colSpan={5} className="py-24 text-center">
+                      <div className="flex flex-col items-center gap-4">
+                        <div className="w-12 h-12 border-4 border-gray-100 border-t-[#00B140] rounded-full animate-spin"></div>
+                        <p className="text-xs font-black text-gray-400 uppercase tracking-[0.2em]">Syncing Data</p>
+                      </div>
+                    </td>
+                  </tr>
                 ) : filteredAndSortedTransactions.length === 0 ? (
-                  <tr><td colSpan={5} className="p-8 text-center text-gray-400">No records found</td></tr>
+                  <tr>
+                    <td colSpan={5} className="py-24 text-center">
+                      <div className="flex flex-col items-center gap-5">
+                        <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center border border-gray-100">
+                          <Search size={32} className="text-gray-200" />
+                        </div>
+                        <div className="space-y-2">
+                          <p className="text-xl font-black text-gray-800 tracking-tight">No Records Found</p>
+                          <p className="text-sm text-gray-400 font-medium">Try adjusting your filters or search terms</p>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
                 ) : (
                   filteredAndSortedTransactions.map((tx: any) => (
-                    <tr key={tx.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="p-4 text-sm font-mono text-gray-500">{tx.bill_number || '-'}</td>
-                      <td className="p-4 text-sm text-gray-500">{tx.date}</td>
-                      <td className="p-4 font-medium text-gray-800">{tx.student_name}</td>
-                      <td className="p-4 text-sm text-gray-600">{tx.class_name}</td>
-                      <td className="p-4 font-bold text-[#00B140] text-right">Rs. {tx.amount.toLocaleString()}</td>
+                    <tr key={tx.id} className="hover:bg-[#00B140]/[0.02] transition-colors group">
+                      <td className="px-6 py-5 align-middle">
+                        <div className="flex items-center gap-4">
+
+                          <div className="flex flex-col">
+                            <span className="text-m font-black text-gray-800 font-mono tracking-tighter">{tx.bill_number || 'N/A'}</span>
+
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-5 align-middle">
+                        <div className="flex flex-col">
+                          <span className="font-black text-gray-600 text-m tracking-tight uppercase group-hover:text-[#00B140] transition-colors">{tx.student_name}</span>
+
+                        </div>
+                      </td>
+                      <td className="px-6 py-5 align-middle">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-gray-700">{tx.date.split(',')[0]}</span>
+                          <span className="text-[11px] font-medium text-gray-400">{tx.date.split(',')[1]}</span>
+                        </div>
+                      </td>
+
+                      <td className="px-6 py-5 align-middle">
+                        <span className=" font-black text-gray-600 text-m tracking-tight uppercase group-hover:text-[#00B140] transition-colors ">
+                          {tx.class_name}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5 align-middle text-right">
+                        <div className="flex flex-col items-end">
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-sm font-bold text-gray-400">Rs.</span>
+                            <span className="font-black text-gray-600 text-xl tracking-tighter tabular-nums">{tx.amount.toLocaleString()}</span>
+                          </div>
+                          <div className="flex items-center gap-1 mt-0.5">
+                          
+                          </div>
+                        </div>
+                      </td>
                     </tr>
                   ))
                 )}
