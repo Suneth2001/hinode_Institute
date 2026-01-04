@@ -373,7 +373,7 @@ const BillingPage = ({
   return (
     <div className="h-full flex flex-col md:flex-row gap-0 overflow-hidden">
       {/* Course Selection Area */}
-      <div className="flex-1 bg-gray-50 p-4 md:p-8 overflow-y-auto order-1">
+      <div className="flex-1 bg-gray-200 p-4 md:p-8 overflow-y-auto order-1">
         <header className="mb-6 md:mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h2 className="text-xl md:text-2xl font-bold text-gray-800">Select Courses</h2>
@@ -409,7 +409,7 @@ const BillingPage = ({
       </div>
 
       {/* Bill / Cart Area */}
-      <div className="w-full md:w-[400px] bg-white shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] md:shadow-2xl flex flex-col h-[45%] md:h-full border-t md:border-t-0 md:border-l border-gray-100 z-20 order-2 shrink-0">
+      <div className="w-full md:w-[400px] bg-white-500 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] md:shadow-2xl flex flex-col h-[45%] md:h-full border-t md:border-t-0 md:border-l border-gray-100 z-20 order-2 shrink-0">
         <div className="p-4 md:p-6 bg-[#00B140] text-white shrink-0">
           <h3 className="text-lg font-bold">Courses Bill</h3>
           <p className="text-green-100 text-sm hidden md:block">Review details before printing</p>
@@ -417,31 +417,31 @@ const BillingPage = ({
 
         <div className="p-4 md:p-6 flex-1 overflow-y-auto flex flex-col gap-4">
           <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Student Name</label>
+            <label className="block text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Student Name</label>
             <input
               type="text"
               value={studentName}
               onChange={(e) => setStudentName(e.target.value)}
               placeholder="Enter student name"
-              className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#00B140] transition-all"
+              className="w-full p-3 bg-gray-50 rounded-xl border border-gray-500 focus:outline-none focus:ring-2 focus:ring-[#00B140] transition-all"
             />
           </div>
 
           <div className="flex-1">
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Selected Items ({cart.length})</label>
+            <label className="block text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Selected Items ({cart.length})</label>
             {cart.length === 0 ? (
-              <div className="text-center py-6 md:py-10 text-gray-300 border-2 border-dashed border-gray-100 rounded-xl text-sm">
+              <div className="text-center py-6 md:py-10 text-gray-400 border-2 border-dashed border-gray-400 rounded-xl text-sm">
                 No items selected
               </div>
             ) : (
               <div className="space-y-3">
                 {cart.map((item, idx) => (
-                  <div key={`${item.id}-${idx}`} className="flex justify-between items-center bg-gray-50 p-3 rounded-lg group">
+                  <div key={`${item.id}-${idx}`} className="flex justify-between items-center bg-green-100 p-3 border-2 border-line border-gray-400 rounded-lg group">
                     <div className="overflow-hidden">
-                      <div className="font-medium text-gray-800 text-sm truncate">{item.name}</div>
-                      <div className="text-xs text-gray-500">Rs. {item.price.toLocaleString()}</div>
+                      <div className="font-medium text-gray-800 text-m truncate">{item.name}</div>
+                      <div className="text-sm text-gray-500">Rs. {item.price.toLocaleString()}</div>
                     </div>
-                    <button onClick={() => removeFromCart(item.id)} className="text-gray-300 hover:text-red-500 transition-colors p-1">
+                    <button onClick={() => removeFromCart(item.id)} className="text-gray-500 hover:text-red-500 transition-colors p-1">
                       <Trash2 size={16} />
                     </button>
                   </div>
@@ -610,7 +610,7 @@ const HistoryPage = () => {
             </div>
             <button
               onClick={loadData}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-500 flex items-center gap-2 text-sm font-bold uppercase tracking-wider"
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-blue-500 flex items-center gap-2 text-sm font-bold uppercase tracking-wider"
               title="Refresh Data"
             >
               <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -701,24 +701,24 @@ const HistoryPage = () => {
       </header>
 
       {/* Main Table Container */}
-      <div className="flex-1 p-4 md:p-8 overflow-hidden bg-gray-50">
+      <div className="flex-1 p-4 md:p-8 overflow-hidden bg-gray-100">
         <div className="h-full bg-white rounded-[1rem] shadow-xl shadow-gray-200/50 border border-gray-100 flex flex-col overflow-hidden">
           <div className="flex-1 overflow-auto">
             <table className="w-full text-left relative min-w-[800px] border-collapse">
               <thead className="sticky top-0 z-20 shadow-sm">
                 <tr className="bg-white/95 backdrop-blur-md">
                   <th
-                    className="p-5 font-bold text-gray-400 text-[10px] uppercase tracking-widest cursor-pointer hover:text-[#00B140] transition-colors border-b border-gray-200"
+                    className="p-5 font-bold text-gray-400 text-[12px] uppercase tracking-widest cursor-pointer hover:text-[#00B140] transition-colors border-b border-gray-200"
                     onClick={() => handleSort('bill_number')}
                   >
                     <div className="flex items-center gap-2">
                       Bill Details {getSortIcon('bill_number')}
                     </div>
                   </th>
-                  <th className="p-5 font-bold text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-200">Student Name</th>
+                  <th className="p-5 font-bold text-gray-400 text-[12px] uppercase tracking-widest border-b border-gray-200">Student Name</th>
 
                   <th
-                    className="p-5 font-bold text-gray-400 text-[10px] uppercase tracking-widest cursor-pointer hover:text-[#00B140] transition-colors border-b border-gray-200"
+                    className="p-5 font-bold text-gray-400 text-[12px] uppercase tracking-widest cursor-pointer hover:text-[#00B140] transition-colors border-b border-gray-200"
                     onClick={() => handleSort('timestamp')}
                   >
                     <div className="flex items-center gap-2">
@@ -726,14 +726,14 @@ const HistoryPage = () => {
                     </div>
                   </th>
                   <th
-                    className="p-5 font-bold text-gray-400 text-[10px] uppercase tracking-widest cursor-pointer hover:text-[#00B140] transition-colors border-b border-gray-200"
+                    className="p-5 font-bold text-gray-400 text-[12px] uppercase tracking-widest cursor-pointer hover:text-[#00B140] transition-colors border-b border-gray-200"
                     onClick={() => handleSort('class_name')}
                   >
                     <div className="flex items-center gap-2">
                       Course Plan {getSortIcon('class_name')}
                     </div>
                   </th>
-                  <th className="p-5 font-bold text-gray-400 text-[10px] uppercase tracking-widest text-right border-b border-gray-200">Settled Amount</th>
+                  <th className="p-5 font-bold text-gray-400 text-[12px] uppercase tracking-widest text-right border-b border-gray-200">Settled Amount</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -774,7 +774,7 @@ const HistoryPage = () => {
                       </td>
                       <td className="px-6 py-5 align-middle">
                         <div className="flex flex-col">
-                          <span className="font-black text-gray-600 text-m tracking-tight uppercase group-hover:text-[#00B140] transition-colors">{tx.student_name}</span>
+                          <span className="font-black text-gray-600 text-m tracking-tight uppercase group-hover:text-[#79C9C5] transition-colors">{tx.student_name}</span>
 
                         </div>
                       </td>
@@ -786,7 +786,7 @@ const HistoryPage = () => {
                       </td>
 
                       <td className="px-6 py-5 align-middle">
-                        <span className=" font-black text-gray-600 text-m tracking-tight uppercase group-hover:text-[#00B140] transition-colors ">
+                        <span className=" font-black text-gray-600 text-m tracking-tight uppercase group-hover:text-[#D1855C] transition-colors ">
                           {tx.class_name}
                         </span>
                       </td>
