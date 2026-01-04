@@ -183,7 +183,7 @@ const App = () => {
           setCart([]);
           setCurrentBillNo('');
         }, 500);
-      }, 100);
+      }, 500);
 
     } catch (error) {
       console.error("Transaction failed", error);
@@ -199,7 +199,7 @@ const App = () => {
   };
 
   return (
-    <div className="h-screen bg-gray-100 font-sans text-gray-800 overflow-hidden">
+    <div className="h-screen bg-gray-100 font-sans text-gray-800 overflow-hidden print:overflow-visible">
       {/* Main UI - Hidden when printing */}
       <div className="flex h-full print:hidden flex-col md:flex-row">
 
@@ -305,58 +305,67 @@ const App = () => {
         </nav>
       </div>
 
-      {/* Print Receipt Template - Only visible when printing */}
-      <div className="hidden print:block fixed inset-0 bg-white z-[9999] p-8">
-        <div className="border-2 border-gray-800 p-8 h-full max-w-3xl mx-auto">
-          <div className="text-center border-b-2 border-gray-800 pb-6 mb-6">
-            <div className="flex justify-center items-center gap-2 mb-2">
-              <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center text-white font-bold text-xs">H</div>
-              <h1 className="text-4xl font-bold uppercase tracking-wider">Hinode Institute</h1>
+      {/* Print Receipt Template - Optimized for 80mm Thermal Printer (Xprinter XP-80T) */}
+      <div className="fixed inset-0 bg-white z-[-1] print:z-[9999] print:block p-0">
+        <div className="w-[80mm] max-w-full mx-auto print:mx-0 p-2 text-gray-900">
+          <div className="text-center border-b border-dashed border-gray-800 pb-4 mb-4">
+            <div className="flex flex-col items-center gap-2 mb-2">
+              <img src="/2nd_image.jpg" alt="Hinode Logo" className="w-45 h-35 object-contain" />
+             
             </div>
-            <p className="text-sm text-gray-600 uppercase tracking-widest">Official Payment Receipt</p>
+            <p className="text-[10px] text-gray-600 uppercase tracking-tighter">Official Payment Receipt</p>
           </div>
 
-          <div className="flex justify-between items-start mb-8">
+          <div className="flex justify-between items-start mb-4 text-[11px]">
             <div>
-              <p className="text-xs text-gray-500 uppercase font-bold">Student Name</p>
-              <p className="text-xl font-bold">{studentName}</p>
+              <p className="text-[9px] text-gray-500 uppercase font-bold">Student</p>
+              <p className="font-bold">{studentName}</p>
             </div>
             <div className="text-right">
-              <p className="text-xs text-gray-500 uppercase font-bold">Date & Time</p>
-              <p className="text-sm font-medium">{new Date().toLocaleString()}</p>
-              <p className="text-xs text-gray-600 font-mono mt-1 font-bold">Bill No: {currentBillNo}</p>
+              <p className="text-[9px] text-gray-500 uppercase font-bold">Bill No</p>
+              <p className="font-mono font-bold">{currentBillNo}</p>
             </div>
           </div>
+          
+          <div className="mb-4 text-[10px] text-gray-600 border-b border-dashed border-gray-300 pb-2">
+            <p>Date: {new Date().toLocaleDateString()}</p>
+            <p>Time: {new Date().toLocaleTimeString()}</p>
+          </div>
 
-          <table className="w-full mb-8">
+          <table className="w-full mb-4 text-[11px]">
             <thead>
-              <tr className="border-b-2 border-gray-800">
-                <th className="py-2 text-left font-bold uppercase text-sm">Description</th>
-                <th className="py-2 text-right font-bold uppercase text-sm">Amount (Rs.)</th>
+              <tr className="border-b border-gray-800">
+                <th className="py-1 text-left font-bold uppercase">Item</th>
+                <th className="py-1 text-right font-bold uppercase">Amount</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-dashed divide-gray-200">
               {cart.map((item, idx) => (
                 <tr key={idx}>
-                  <td className="py-3 text-sm">{item.name} <span className="text-xs text-gray-500 block">{item.schedule}</span></td>
-                  <td className="py-3 text-right font-medium">{item.price.toLocaleString()}</td>
+                  <td className="py-2 pr-2">
+                    <div className="font-bold">{item.name}</div>
+                    <div className="text-[9px] text-gray-500">{item.schedule}</div>
+                  </td>
+                  <td className="py-2 text-right align-top font-bold">{item.price.toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>
           </table>
 
-          <div className="flex flex-col items-end border-t-2 border-gray-800 pt-4 mb-12">
-            <div className="flex justify-between w-64 text-2xl font-bold">
+          <div className="flex flex-col items-end border-t border-gray-800 pt-2 mb-6">
+            <div className="flex justify-between w-full text-lg font-bold">
               <span>TOTAL</span>
-              <span>Rs. {totalAmount.toLocaleString()}</span>
+              <span>Rs.{totalAmount.toLocaleString()}</span>
             </div>
-            <p className="text-xs text-gray-500 mt-1">Paid in Cash</p>
+            <p className="text-[10px] text-gray-500">Paid in Cash</p>
           </div>
 
-          <div className="text-center mt-auto pt-8 border-t border-gray-200">
-            <p className="font-bold text-gray-800">Thank You!</p>
-            <p className="text-xs text-gray-500 mt-1">Please retain this receipt for your records.</p>
-            <p className="text-xs text-gray-400 mt-4">System Generated Receipt | Hinode Institute</p>
+          <div className="text-center pt-4 border-t border-dashed border-gray-300 pb-10">
+            <p className="font-bold text-sm">Thank You!</p>
+            <p className="text-[9px] text-gray-500 mt-1">Please retain this receipt.</p>
+           
+              <p className="text-[8px] text-gray-400 mt-2">Develop & Designed by ZipZipy(Pvt)Ltd.</p>
+                 <p className="text-[8px] text-gray-400 mt-1">076 6595714</p>
           </div>
         </div>
       </div>

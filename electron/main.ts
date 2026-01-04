@@ -2,6 +2,9 @@ import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import path from 'path';
 import fs from 'fs';
 
+// Enable Chromium Print Preview
+app.commandLine.appendSwitch('enable-print-preview');
+
 // --- Data Storage Setup (JSON) ---
 const DATA_FILE_NAME = 'transactions.json';
 let dataFilePath: string;
