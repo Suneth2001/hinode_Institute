@@ -67,8 +67,10 @@ function createWindow() {
       contextIsolation: true,
     },
     title: "Hinode Institute POS",
-    icon: path.join(__dirname, '../public/icon.ico')
+    icon: path.join(__dirname, '../public/logo.ico')
   });
+
+  mainWindow.setMenu(null);
 
   const isDev = !app.isPackaged;
   if (isDev) {
