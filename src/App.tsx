@@ -310,7 +310,7 @@ const App = () => {
         <div className="w-[80mm] max-w-full mx-auto print:mx-0 p-2 text-gray-900">
           <div className="text-center border-b border-dashed border-gray-800 pb-4 mb-4">
             <div className="flex flex-col items-center gap-2 mb-2">
-              <img src="/2nd_image.jpg" alt="Hinode Logo" className="w-45 h-35 object-contain" />
+              <img src="/2nd_image.jpg" alt="Hinode Logo" className="w-42 h-32 object-contain" />
              
             </div>
             <p className="text-[10px] text-gray-600 uppercase tracking-tighter">Official Payment Receipt</p>
