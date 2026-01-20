@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Printer, History, PlusCircle, Search, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Printer, History, PlusCircle, Search, Trash2, ArrowUpDown, ArrowUp, ArrowDown, BarChart3 } from 'lucide-react';
 import Swal from 'sweetalert2';
 
 // --- Constants ---
@@ -36,7 +36,7 @@ interface BillingPageProps {
 }
 
 const App = () => {
-  const [activeTab, setActiveTab] = useState<'billing' | 'history'>('billing');
+  const [activeTab, setActiveTab] = useState<'billing' | 'history' | 'revenue'>('billing');
 
   // Lifted state for BillingPage to manage print logic at App level
   const [studentName, setStudentName] = useState('');
@@ -255,6 +255,17 @@ const App = () => {
               <History size={20} />
               <span className="font-semibold">History</span>
             </button>
+
+            <button
+              onClick={() => setActiveTab('revenue')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${activeTab === 'revenue'
+                ? 'bg-[#00B140] text-white shadow-md transform scale-105'
+                : 'text-gray-600 hover:bg-gray-50 hover:text-[#00B140]'
+                }`}
+            >
+              <BarChart3 size={20} />
+              <span className="font-semibold">Revenue</span>
+            </button>
           </nav>
 
           <div className="p-4 border-t border-gray-100 text-center text-xs text-gray-400">
@@ -283,7 +294,11 @@ const App = () => {
               filteredCourses={filteredCourses}
               totalAmount={totalAmount}
             />
-          ) : <HistoryPage />}
+          ) : activeTab === 'history' ? (
+            <HistoryPage />
+          ) : (
+            <RevenuePage />
+          )}
         </main>
 
         {/* Mobile Bottom Navigation */}
@@ -302,6 +317,13 @@ const App = () => {
             <History size={24} />
             <span className="text-[10px] font-bold uppercase">History</span>
           </button>
+          <button
+            onClick={() => setActiveTab('revenue')}
+            className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-colors ${activeTab === 'revenue' ? 'text-[#00B140]' : 'text-gray-400'}`}
+          >
+            <BarChart3 size={24} />
+            <span className="text-[10px] font-bold uppercase">Revenue</span>
+          </button>
         </nav>
       </div>
 
@@ -311,7 +333,7 @@ const App = () => {
           <div className="text-center border-b border-dashed border-gray-800 pb-4 mb-4">
             <div className="flex flex-col items-center gap-2 mb-2">
               <img src="/2nd_image.jpg" alt="Hinode Logo" className="w-42 h-32 object-contain" />
-             
+
             </div>
             <p className="text-[10px] text-gray-600 uppercase tracking-tighter">Official Payment Receipt</p>
           </div>
@@ -326,7 +348,7 @@ const App = () => {
               <p className="font-mono font-bold">{currentBillNo}</p>
             </div>
           </div>
-          
+
           <div className="mb-4 text-[10px] text-gray-600 border-b border-dashed border-gray-300 pb-2">
             <p>Date: {new Date().toLocaleDateString()}</p>
             <p>Time: {new Date().toLocaleTimeString()}</p>
@@ -363,9 +385,9 @@ const App = () => {
           <div className="text-center pt-4 border-t border-dashed border-gray-300 pb-10">
             <p className="font-bold text-sm">Thank You!</p>
             <p className="text-[9px] text-gray-500 mt-1">Please retain this receipt.</p>
-           
-              <p className="text-[8px] text-gray-400 mt-2">Develop & Designed by ZipZipy(Pvt)Ltd.</p>
-                 <p className="text-[8px] text-gray-400 mt-1">076 6595714</p>
+
+            <p className="text-[8px] text-gray-400 mt-2">Develop & Designed by ZipZipy(Pvt)Ltd.</p>
+            <p className="text-[8px] text-gray-400 mt-1">076 6595714</p>
           </div>
         </div>
       </div>
@@ -483,6 +505,258 @@ const BillingPage = ({
   );
 };
 
+// --- Revenue Page Component ---
+const RevenuePage = () => {
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedClass, setSelectedClass] = useState('All');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetch = async () => {
+      try {
+        if (window.api) {
+          const data = await window.api.getTransactions();
+          setTransactions(data);
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetch();
+  }, []);
+
+  // -- Calculations --
+  const uniqueClasses = useMemo(() => {
+    const classes = new Set<string>();
+    // Add known courses
+    COURSE_FEES.forEach(c => classes.add(c.name));
+    // Add any from history that might not be in current fees
+    transactions.forEach(t => classes.add(t.class_name));
+    return Array.from(classes).sort();
+  }, [transactions]);
+
+  const yearTransactions = transactions.filter(t => {
+    const d = new Date(t.timestamp);
+    const matchesYear = d.getFullYear() === selectedYear;
+    const matchesClass = selectedClass === 'All' || t.class_name === selectedClass;
+    return matchesYear && matchesClass;
+  });
+
+  const monthTransactions = yearTransactions.filter(t => {
+    const d = new Date(t.timestamp);
+    return d.getMonth() === selectedMonth;
+  });
+
+  const yearlyRevenue = yearTransactions.reduce((sum, t) => sum + t.amount, 0);
+  const monthlyRevenue = monthTransactions.reduce((sum, t) => sum + t.amount, 0);
+
+  const getBreakdown = (txs: any[]) => {
+    const map: Record<string, number> = {};
+    txs.forEach(t => {
+      map[t.class_name] = (map[t.class_name] || 0) + t.amount;
+    });
+    return map;
+  };
+
+  const yearlyClassRevenue = getBreakdown(yearTransactions);
+  const monthlyClassRevenue = getBreakdown(monthTransactions);
+
+  const months = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+
+  if (loading) return <div className="h-full flex items-center justify-center font-bold text-gray-400">Loading Analytics...</div>;
+
+  return (
+    <div className="h-full flex flex-col bg-green-50/50 overflow-hidden">
+      {/* Revenue Header */}
+      <header className="shrink-0 bg-white border-b border-gray-100 shadow-sm px-8 py-6 z-10">
+        <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800 tracking-tight">Revenue Analytics</h2>
+            <p className="text-sm text-gray-400 font-medium mt-0.5">Financial overview and performance</p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Class Filter */}
+            <div className="relative">
+              <select
+                value={selectedClass}
+                onChange={(e) => setSelectedClass(e.target.value)}
+                className="appearance-none pl-4 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#00B140]/20 focus:border-[#00B140] transition-all cursor-pointer shadow-sm hover:border-[#00B140] min-w-[150px]"
+              >
+                <option value="All">All Classes</option>
+                {uniqueClasses.map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+                <ArrowDown size={14} />
+              </div>
+            </div>
+
+            {/* Month Filter */}
+            <div className="relative">
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                className="appearance-none pl-4 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#00B140]/20 focus:border-[#00B140] transition-all cursor-pointer shadow-sm hover:border-[#00B140] min-w-[140px]"
+              >
+                {months.map((m, i) => (
+                  <option key={i} value={i}>{m}</option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+                <ArrowDown size={14} />
+              </div>
+            </div>
+
+            {/* Year Filter */}
+            <div className="relative">
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(Number(e.target.value))}
+                className="appearance-none pl-4 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#00B140]/20 focus:border-[#00B140] transition-all cursor-pointer shadow-sm hover:border-[#00B140]"
+              >
+                {[2024, 2025, 2026, 2027, 2028].map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+                <ArrowDown size={14} />
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Grid */}
+      <div className="flex-1 p-8 overflow-y-auto">
+        <div className="max-w-[1600px] mx-auto flex flex-col gap-6">
+
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Monthly Card */}
+            <div className="bg-white rounded-[1.5rem] p-6 shadow-xl shadow-green-900/5 border border-green-50 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-[#00B140]/5 rounded-full -translate-y-1/2 translate-x-1/3 group-hover:scale-110 transition-transform duration-500"></div>
+              <div className="relative z-10">
+                <p className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">
+                  Revenue ({months[selectedMonth]} {selectedYear})
+                </p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-4xl font-black text-gray-800 tracking-tight">Rs. {monthlyRevenue.toLocaleString()}</span>
+                </div>
+                <div className="mt-4 flex items-center gap-2 text-xs font-bold text-[#00B140] bg-[#00B140]/10 w-fit px-3 py-1.5 rounded-full">
+                  <BarChart3 size={14} />
+                  <span>{selectedClass === 'All' ? 'All Classes' : selectedClass}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Yearly Card */}
+            <div className="bg-white rounded-[1.5rem] p-6 shadow-xl shadow-blue-900/5 border border-blue-50 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full -translate-y-1/2 translate-x-1/3 group-hover:scale-110 transition-transform duration-500"></div>
+              <div className="relative z-10">
+                <p className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">
+                  Revenue ({selectedYear})
+                </p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-4xl font-black text-gray-800 tracking-tight">Rs. {yearlyRevenue.toLocaleString()}</span>
+                </div>
+                <div className="mt-4 flex items-center gap-2 text-xs font-bold text-blue-600 bg-blue-50 w-fit px-3 py-1.5 rounded-full">
+                  <BarChart3 size={14} />
+                  <span>{selectedClass === 'All' ? 'All Classes' : selectedClass}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Breakdown Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            {/* Monthly Breakdown */}
+            <div className="bg-white rounded-[1.5rem] p-6 shadow-lg shadow-gray-200/50 border border-gray-100 flex flex-col h-[500px]">
+              <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
+                <span className="w-1.5 h-6 bg-[#00B140] rounded-full"></span>
+                Monthly Breakdown ({months[selectedMonth]})
+              </h3>
+              <div className="flex-1 overflow-y-auto pr-2 space-y-5 custom-scrollbar">
+                {Object.keys(monthlyClassRevenue).length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-gray-400">
+                    <p>No data for {months[selectedMonth]}</p>
+                  </div>
+                ) : (
+                  Object.entries(monthlyClassRevenue)
+                    .sort(([, a], [, b]) => b - a)
+                    .map(([className, amount]) => {
+                      const percentage = (amount / monthlyRevenue) * 100;
+                      return (
+                        <div key={className} className="group">
+                          <div className="flex justify-between items-end mb-2">
+                            <span className="font-bold text-gray-700 text-sm">{className}</span>
+                            <span className="font-black text-gray-800 text-sm">Rs. {amount.toLocaleString()}</span>
+                          </div>
+                          <div className="h-2.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-[#00B140] rounded-full group-hover:bg-[#009e3a] transition-all duration-500 ease-out"
+                              style={{ width: `${percentage}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      );
+                    })
+                )}
+              </div>
+            </div>
+
+            {/* Yearly Breakdown */}
+            <div className="bg-white rounded-[1.5rem] p-6 shadow-lg shadow-gray-200/50 border border-gray-100 flex flex-col h-[500px]">
+              <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
+                <span className="w-1.5 h-6 bg-blue-500 rounded-full"></span>
+                Yearly Breakdown ({selectedYear})
+              </h3>
+              <div className="flex-1 overflow-y-auto pr-2 space-y-5 custom-scrollbar">
+                {Object.keys(yearlyClassRevenue).length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-gray-400">
+                    <p>No data for {selectedYear}</p>
+                  </div>
+                ) : (
+                  Object.entries(yearlyClassRevenue)
+                    .sort(([, a], [, b]) => b - a)
+                    .map(([className, amount]) => {
+                      const percentage = (amount / yearlyRevenue) * 100;
+                      return (
+                        <div key={className} className="group">
+                          <div className="flex justify-between items-end mb-2">
+                            <span className="font-bold text-gray-700 text-sm">{className}</span>
+                            <span className="font-black text-gray-800 text-sm">Rs. {amount.toLocaleString()}</span>
+                          </div>
+                          <div className="h-2.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-blue-500 rounded-full group-hover:bg-blue-600 transition-all duration-500 ease-out"
+                              style={{ width: `${percentage}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      );
+                    })
+                )}
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // --- History Component ---
 const HistoryPage = () => {
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -524,6 +798,117 @@ const HistoryPage = () => {
       console.error(e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    const { value: password } = await Swal.fire({
+      title: 'Enter Admin Password',
+      input: 'password',
+      inputLabel: 'Password required to delete record',
+      inputPlaceholder: 'Enter password',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Delete',
+      inputValidator: (value) => {
+        if (!value) {
+          return 'You need to write something!'
+        }
+      }
+    });
+
+    if (password) {
+      if (password === 'admin123') {
+        try {
+          if (window.api) {
+            const result = await window.api.deleteTransaction(id);
+            if (result.success) {
+              Swal.fire('Deleted!', 'Transaction has been deleted.', 'success');
+              loadData();
+            } else {
+              Swal.fire('Error!', result.error || 'Failed to delete.', 'error');
+            }
+          } else {
+            Swal.fire('Info', 'Delete not available in browser mode', 'info');
+          }
+        } catch (error) {
+          Swal.fire('Error!', 'An unexpected error occurred.', 'error');
+        }
+      } else {
+        Swal.fire('Error!', 'Incorrect Password!', 'error');
+      }
+    }
+  };
+
+  const handleExport = async () => {
+    if (!window.api) {
+      Swal.fire('Info', 'Export not available in browser mode', 'info');
+      return;
+    }
+
+    const { value: dateRange } = await Swal.fire({
+      title: 'Export Payment Report',
+      html: `
+        <div class="flex flex-col gap-4 text-left">
+          <div>
+            <label class="block text-sm font-bold text-gray-600 mb-1">Start Date</label>
+            <input id="swal-start-date" type="date" class="swal2-input m-0 w-full" value="${selectedMonth ? `${selectedMonth}-01` : new Date().toISOString().split('T')[0]}">
+          </div>
+          <div>
+            <label class="block text-sm font-bold text-gray-600 mb-1">End Date</label>
+            <input id="swal-end-date" type="date" class="swal2-input m-0 w-full" value="${new Date().toISOString().split('T')[0]}">
+          </div>
+        </div>
+      `,
+      focusConfirm: false,
+      showCancelButton: true,
+      confirmButtonText: 'Download Report',
+      confirmButtonColor: '#00B140',
+      preConfirm: () => {
+        const start = (document.getElementById('swal-start-date') as HTMLInputElement).value;
+        const end = (document.getElementById('swal-end-date') as HTMLInputElement).value;
+        if (!start || !end) {
+          Swal.showValidationMessage('Please select both start and end dates');
+          return false;
+        }
+        if (start > end) {
+          Swal.showValidationMessage('Start date cannot be after end date');
+          return false;
+        }
+        return { startDate: start, endDate: end };
+      }
+    });
+
+    if (dateRange) {
+      try {
+        Swal.fire({
+          title: 'Generating Report...',
+          didOpen: () => Swal.showLoading(),
+          allowOutsideClick: false
+        });
+
+        const result = await window.api.exportTransactions(dateRange);
+
+        if (result.success) {
+          Swal.fire({
+            icon: 'success',
+            title: 'Export Successful',
+            text: `Saved to: ${result.filePath}`,
+            confirmButtonColor: '#00B140'
+          });
+        } else {
+          Swal.fire({
+            icon: 'error',
+            title: 'Export Failed',
+            text: result.error || 'Unknown error occurred',
+            confirmButtonColor: '#d33'
+          });
+        }
+      } catch (error) {
+        console.error(error);
+        Swal.fire('Error', 'An unexpected error occurred', 'error');
+      }
     }
   };
 
@@ -611,21 +996,20 @@ const HistoryPage = () => {
       {/* Enhanced Header */}
       <header className="shrink-0 bg-white border-b border-gray-100 shadow-sm px-4 md:px-8 py-4 md:py-6 z-10">
         <div className="max-w-[1600px] mx-auto flex flex-col gap-6">
-          {/* Top Row: Title & Refresh */}
+          {/* Top Row: Title & Report Button */}
           <div className="flex justify-between items-center">
             <div>
               <h2 className="text-xl md:text-2xl font-bold text-gray-800 tracking-tight">Payment History</h2>
               <p className="text-sm text-gray-400 font-medium mt-0.5">{getHeaderText()}</p>
             </div>
+
             <button
-              onClick={loadData}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-blue-500 flex items-center gap-2 text-sm font-bold uppercase tracking-wider"
-              title="Refresh Data"
+              onClick={handleExport}
+              className="px-4 py-2 bg-[#00B140] hover:bg-[#009e3a] text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-bold uppercase tracking-wider shadow-sm"
+              title="Export Report"
             >
-              <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              <span className="hidden sm:inline">Refresh</span>
+              <ArrowDown size={16} />
+              <span>Report</span>
             </button>
           </div>
 
@@ -694,16 +1078,27 @@ const HistoryPage = () => {
               </div>
             </div>
 
-            {/* Actions */}
-            <div className="flex items-center gap-2">
+            {/* Actions: Clear & Refresh */}
+            <div className="flex items-center justify-end gap-2 h-full pb-1">
               {(selectedMonth || selectedDate || filterCourse || searchQuery) && (
                 <button
                   onClick={() => { setSelectedMonth(''); setSelectedDate(''); setFilterCourse(''); setSearchQuery(''); }}
-                  className="h-[46px] px-6 text-red-500 hover:bg-red-50 border border-transparent hover:border-red-100 rounded-xl text-sm font-bold transition-all flex-1 sm:flex-none"
+                  className="px-3 py-2 text-red-500 hover:bg-red-50 hover:text-red-600 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors"
                 >
                   Clear All
                 </button>
               )}
+
+              <button
+                onClick={loadData}
+                className="px-3 py-2 text-[#00B140] hover:bg-green-50 hover:text-[#009e3a] rounded-lg text-xs font-bold uppercase tracking-wider transition-colors flex items-center gap-2"
+                title="Refresh Data"
+              >
+                <svg className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span>Refresh</span>
+              </button>
             </div>
           </div>
         </div>
@@ -743,6 +1138,7 @@ const HistoryPage = () => {
                     </div>
                   </th>
                   <th className="p-5 font-bold text-gray-400 text-[12px] uppercase tracking-widest text-right border-b border-gray-200">Settled Amount</th>
+                  <th className="p-5 font-bold text-gray-400 text-[12px] uppercase tracking-widest text-center border-b border-gray-200">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -800,15 +1196,16 @@ const HistoryPage = () => {
                         </span>
                       </td>
                       <td className="px-6 py-5 align-middle text-right">
-                        <div className="flex flex-col items-end">
-                          <div className="flex items-baseline gap-1">
-                            <span className="text-sm font-bold text-gray-400">Rs.</span>
-                            <span className="font-black text-gray-600 text-xl tracking-tighter tabular-nums">{tx.amount.toLocaleString()}</span>
-                          </div>
-                          <div className="flex items-center gap-1 mt-0.5">
-                          
-                          </div>
-                        </div>
+                        <span className="font-bold text-gray-800">Rs. {tx.amount.toLocaleString()}</span>
+                      </td>
+                      <td className="px-6 py-5 align-middle text-center">
+                        <button
+                          onClick={() => handleDelete(tx.id)}
+                          className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                          title="Delete Record"
+                        >
+                          <Trash2 size={18} />
+                        </button>
                       </td>
                     </tr>
                   ))
@@ -817,8 +1214,8 @@ const HistoryPage = () => {
             </table>
           </div>
         </div>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 };
 

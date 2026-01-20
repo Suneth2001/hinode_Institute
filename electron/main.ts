@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+import ExcelJS from 'exceljs';
 import path from 'path';
 import fs from 'fs';
 
@@ -10,7 +11,7 @@ const DATA_FILE_NAME = 'transactions.json';
 let dataFilePath: string;
 
 function initStorage() {
-  const userDataPath = app.isPackaged 
+  const userDataPath = app.isPackaged
     ? path.join(path.dirname(app.getPath('exe')), 'data')
     : path.join(__dirname, '../data');
 
@@ -113,10 +114,10 @@ ipcMain.handle('save-transaction', async (event, data) => {
 
   try {
     const transactions = readData();
-    
+
     // Generate Bill Number
     // Filter for transactions with the same prefix
-    const currentMonthTransactions = transactions.filter((t: any) => 
+    const currentMonthTransactions = transactions.filter((t: any) =>
       t.bill_number && t.bill_number.startsWith(prefix)
     );
 
@@ -131,7 +132,7 @@ ipcMain.handle('save-transaction', async (event, data) => {
     }
 
     const billNumber = `${prefix}${String(sequence).padStart(4, '0')}`;
-    
+
     const newTransaction = {
       id: timestamp, // Using timestamp as ID for simplicity
       bill_number: billNumber,
@@ -144,7 +145,7 @@ ipcMain.handle('save-transaction', async (event, data) => {
 
     transactions.push(newTransaction);
     writeData(transactions);
-    
+
     return { success: true, id: timestamp, bill_number: billNumber, date };
   } catch (error) {
     console.error("Failed to save transaction:", error);
@@ -161,5 +162,156 @@ ipcMain.handle('get-transactions', async (event) => {
   } catch (error) {
     console.error("Failed to fetch transactions:", error);
     return [];
+  }
+});
+
+// Delete Transaction
+ipcMain.handle('delete-transaction', async (event, id) => {
+  try {
+    const transactions = readData();
+    const initialLength = transactions.length;
+    const newTransactions = transactions.filter((t: any) => t.id !== id);
+
+    if (newTransactions.length === initialLength) {
+      return { success: false, error: "Transaction not found" };
+    }
+
+    writeData(newTransactions);
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to delete transaction:", error);
+    return { success: false, error: String(error) };
+  }
+});
+
+// Export Transactions to Excel
+ipcMain.handle('export-transactions', async (event, { startDate, endDate }) => {
+  try {
+    const transactions = readData();
+
+    // Filter by date range
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+
+    const filtered = transactions.filter((t: any) => {
+      const txDate = new Date(t.timestamp);
+      return txDate >= start && txDate <= end;
+    });
+
+    if (filtered.length === 0) {
+      return { success: false, error: "No transactions found in this range." };
+    }
+
+    // Create Workbook
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('Payment History');
+
+    // -- Styling Constants --
+    const headerFill: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF444444' } };
+    const titleFill: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF00B140' } };
+    const whiteBoldFont: Partial<ExcelJS.Font> = { name: 'Arial', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+    const borderAll: Partial<ExcelJS.Borders> = {
+      top: { style: 'thin' },
+      left: { style: 'thin' },
+      bottom: { style: 'thin' },
+      right: { style: 'thin' }
+    };
+
+    // -- Set Column Widths & Default Styles --
+    sheet.columns = [
+      { key: 'bill_no', width: 15, style: { font: { name: 'Arial', size: 10 }, alignment: { vertical: 'middle', horizontal: 'left' } } },
+      { key: 'date', width: 12, style: { font: { name: 'Arial', size: 10 }, alignment: { vertical: 'middle', horizontal: 'center' } } },
+      { key: 'time', width: 12, style: { font: { name: 'Arial', size: 10 }, alignment: { vertical: 'middle', horizontal: 'center' } } },
+      { key: 'student', width: 30, style: { font: { name: 'Arial', size: 10 }, alignment: { vertical: 'middle', horizontal: 'left' } } },
+      { key: 'course', width: 25, style: { font: { name: 'Arial', size: 10 }, alignment: { vertical: 'middle', horizontal: 'left' } } },
+      { key: 'amount', width: 20, style: { font: { name: 'Arial', size: 10 }, alignment: { vertical: 'middle', horizontal: 'right' }, numFmt: '#,##0.00' } },
+    ];
+
+    // -- 1. Title Row --
+    sheet.mergeCells('A1:F1');
+    const titleCell = sheet.getCell('A1');
+    titleCell.value = 'HINODE INSTITUTE - PAYMENT HISTORY';
+    titleCell.font = { name: 'Arial', size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
+    titleCell.fill = titleFill;
+    titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    sheet.getRow(1).height = 30;
+
+    // -- 2. Date Range Row --
+    sheet.mergeCells('A2:F2');
+    const subtitleCell = sheet.getCell('A2');
+    subtitleCell.value = `Report Period: ${startDate} to ${endDate}`;
+    subtitleCell.font = { name: 'Arial', size: 10, italic: true };
+    subtitleCell.alignment = { horizontal: 'center' };
+    sheet.getRow(2).height = 20;
+
+    // -- 3. Headers --
+    const headerRow = sheet.getRow(4);
+    headerRow.values = ['Bill No', 'Date', 'Time', 'Student Name', 'Course', 'Amount (Rs)'];
+    headerRow.height = 25;
+
+    headerRow.eachCell((cell) => {
+      cell.font = whiteBoldFont;
+      cell.fill = headerFill;
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      cell.border = borderAll;
+    });
+
+    // -- 4. Data Rows --
+    let totalAmount = 0;
+
+    filtered.forEach((t: any) => {
+      totalAmount += t.amount;
+      const d = new Date(t.timestamp);
+
+      const row = sheet.addRow({
+        bill_no: t.bill_number,
+        date: d.toLocaleDateString(),
+        time: d.toLocaleTimeString(),
+        student: t.student_name,
+        course: t.class_name,
+        amount: t.amount
+      });
+
+      // Apply borders only (other styles inherited from columns)
+      row.eachCell((cell) => {
+        cell.border = borderAll;
+      });
+    });
+
+    // -- 5. Total Row --
+    const totalRow = sheet.addRow(['', '', '', '', 'TOTAL', totalAmount]);
+    totalRow.height = 25;
+
+    // Style Total Label
+    const totalLabel = totalRow.getCell(5);
+    totalLabel.font = { name: 'Arial', size: 12, bold: true };
+    totalLabel.alignment = { horizontal: 'right', vertical: 'middle' };
+
+    // Style Total Value
+    const totalValue = totalRow.getCell(6);
+    totalValue.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FF00B140' } };
+    totalValue.numFmt = 'Rs #,##0.00';
+    totalValue.alignment = { horizontal: 'right', vertical: 'middle' };
+    totalValue.border = borderAll;
+
+    // -- Save Dialog --
+    const { filePath } = await dialog.showSaveDialog({
+      title: 'Save Payment Report',
+      defaultPath: `Hinode_Report_${startDate}_${endDate}.xlsx`,
+      filters: [{ name: 'Excel Workbook', extensions: ['xlsx'] }]
+    });
+
+    if (filePath) {
+      await workbook.xlsx.writeFile(filePath);
+      return { success: true, filePath };
+    } else {
+      return { success: false, error: "Save cancelled" };
+    }
+
+  } catch (error) {
+    console.error("Failed to export:", error);
+    return { success: false, error: String(error) };
   }
 });
