@@ -61,5 +61,41 @@
     "amount": 5000,
     "date": "1/19/2026, 7:27:41 PM",
     "timestamp": 1768831061391
+  },
+  {
+    "id": 1768834176558,
+    "bill_number": "2026010011",
+    "student_name": "Rajith",
+    "class_name": "Admission Fee",
+    "amount": 1000,
+    "date": "1/19/2026, 8:19:36 PM",
+    "timestamp": 1768834176558
+  },
+  {
+    "id": 1768575145173,
+    "bill_number": "2026010012",
+    "student_name": "Pasidu",
+    "class_name": "N5 Japanese",
+    "amount": 5000,
+    "date": "1/16/2026, 8:22:25 PM",
+    "timestamp": 1768575145173
+  },
+  {
+    "id": 1768920985223,
+    "bill_number": "2026010014",
+    "student_name": "Kasun",
+    "class_name": "2028 AL Revision",
+    "amount": 4500,
+    "date": "1/20/2026, 8:26:25 PM",
+    "timestamp": 1768920985223
+  },
+  {
+    "id": 1768748211550,
+    "bill_number": "2026010015",
+    "student_name": "Sadun",
+    "class_name": "Grade 6 to 11",
+    "amount": 1200,
+    "date": "1/18/2026, 8:26:51 PM",
+    "timestamp": 1768748211550
   }
 ]

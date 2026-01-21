@@ -103,10 +103,19 @@ app.on('window-all-closed', () => {
 
 // Save Transaction
 ipcMain.handle('save-transaction', async (event, data) => {
-  const { studentName, className, amount } = data;
+  const { studentName, className, amount, date: customDate } = data;
   const now = new Date();
+
+  if (customDate) {
+    const d = new Date(customDate);
+    // Keep current time but switch to selected date
+    now.setFullYear(d.getFullYear());
+    now.setMonth(d.getMonth());
+    now.setDate(d.getDate());
+  }
+
   const date = now.toLocaleString();
-  const timestamp = Date.now();
+  const timestamp = now.getTime();
 
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');

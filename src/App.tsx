@@ -33,6 +33,8 @@ interface BillingPageProps {
   setSearchQuery: (q: string) => void;
   filteredCourses: typeof COURSE_FEES;
   totalAmount: number;
+  selectedDate: string;
+  setSelectedDate: (date: string) => void;
 }
 
 const App = () => {
@@ -45,7 +47,9 @@ const App = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isConnected, setIsConnected] = useState(false);
   const [currentBillNo, setCurrentBillNo] = useState('');
+
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
   useEffect(() => {
     setIsConnected(!!window.api);
@@ -131,7 +135,8 @@ const App = () => {
           const res = await window.api.saveTransaction({
             studentName,
             className: item.name,
-            amount: item.price
+            amount: item.price,
+            date: selectedDate
           });
           if (res && res.bill_number) {
             billNumbers.push(res.bill_number);
@@ -182,6 +187,7 @@ const App = () => {
           setStudentName('');
           setCart([]);
           setCurrentBillNo('');
+          setSelectedDate(new Date().toISOString().split('T')[0]);
         }, 500);
       }, 500);
 
@@ -293,6 +299,8 @@ const App = () => {
               setSearchQuery={setSearchQuery}
               filteredCourses={filteredCourses}
               totalAmount={totalAmount}
+              selectedDate={selectedDate}
+              setSelectedDate={setSelectedDate}
             />
           ) : activeTab === 'history' ? (
             <HistoryPage />
@@ -350,7 +358,7 @@ const App = () => {
           </div>
 
           <div className="mb-4 text-[10px] text-gray-600 border-b border-dashed border-gray-300 pb-2">
-            <p>Date: {new Date().toLocaleDateString()}</p>
+            <p>Date: {selectedDate}</p>
             <p>Time: {new Date().toLocaleTimeString()}</p>
           </div>
 
@@ -398,7 +406,8 @@ const App = () => {
 // --- Billing Component ---
 const BillingPage = ({
   studentName, setStudentName, cart, addToCart, removeFromCart,
-  handlePrint, isPrinting, searchQuery, setSearchQuery, filteredCourses, totalAmount
+  handlePrint, isPrinting, searchQuery, setSearchQuery, filteredCourses, totalAmount,
+  selectedDate, setSelectedDate
 }: BillingPageProps) => {
 
   return (
@@ -454,6 +463,16 @@ const BillingPage = ({
               value={studentName}
               onChange={(e) => setStudentName(e.target.value)}
               placeholder="Enter student name"
+              className="w-full p-3 bg-gray-50 rounded-xl border border-gray-500 focus:outline-none focus:ring-2 focus:ring-[#00B140] transition-all"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Date</label>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
               className="w-full p-3 bg-gray-50 rounded-xl border border-gray-500 focus:outline-none focus:ring-2 focus:ring-[#00B140] transition-all"
             />
           </div>
